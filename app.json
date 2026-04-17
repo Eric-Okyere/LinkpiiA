@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "Linkpii",
+    "slug": "palm-farm",
+    "version": "3.8.9",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fd1463cf-a84f-4b49-be89-16462cf4113a",
+      "enabled": true,
+      "checkOnLaunch": "ALWAYS",
+      "fallbackToCacheTimeout": 0
+    },
+    
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.linkpii.ios",
+      "buildNumber": "63",
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "450195054535-mdgnuqmso5ubkq33nl5a5fn6mjhdmtet.apps.googleusercontent.com"
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "env": {
+        "EXPO_ANDROID_PAGE_SIZE_16K": "true"
+      },
+      "versionCode": 79,
+      "package": "com.ericok.palm",
+      "runtimeVersion": "1.0.0"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.450195054535-mdgnuqmso5ubkq33nl5a5fn6mjhdmtet"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
+          }
+        }
+      ],
+      "expo-video"
+    ],
+    "scheme": "Linkpii",
+    "extra": {
+      "eas": {
+        "redirectUri": "com.googleusercontent.apps.450195054535-mdgnuqmso5ubkq33nl5a5fn6mjhdmtet",
+        "projectId": "fd1463cf-a84f-4b49-be89-16462cf4113a"
+      }
+    },
+    "owner": "ericok",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
