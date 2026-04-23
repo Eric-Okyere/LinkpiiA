@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -22,7 +22,7 @@ import { useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
 import CountryPicker from 'react-native-country-picker-modal';
 import { Picker } from "@react-native-picker/picker";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import baseURL from "../../assets/common/BaseUrl";
 import Error from "../../src/User/Error";
 
@@ -116,20 +116,30 @@ function Rentcarpost({ route }) {
     }
   }, [route.params?.item]);
 
+
   const pickMedia = async (type) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Denied", "Gallery access needed.");
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      if (type === 'pic1') setPicture(uri);
-      if (type === 'pic2') setPicturesec(uri);
+    try {
+      const mediaType =
+        type === "video"
+          ? ImagePicker.MediaTypeOptions.Videos
+          : ImagePicker.MediaTypeOptions.Images;
+  
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: mediaType,
+        allowsEditing: true,
+        quality: 0.8,
+        selectionLimit: 1,
+      });
+  
+      if (!result.canceled && result.assets?.length > 0) {
+        const uri = result.assets[0].uri;
+  
+        if (type === "pic1") setPicture(uri);
+        if (type === "pic2") setPicturesec(uri);
+        if (type === "video") setVideo(uri);
+      }
+    } catch (err) {
+      Alert.alert("Error", "Could not access media.");
     }
   };
 
@@ -163,7 +173,7 @@ function Rentcarpost({ route }) {
 
       const response = await fetch(url, {
         method,
-        headers: { Accept: "application/json", "Content-Type": "multipart/form-data" },
+        headers: { Accept: "application/json" },
         body: formData,
       });
 
@@ -220,12 +230,12 @@ function Rentcarpost({ route }) {
                 </Picker>
               </View>
 
-              <TextInput style={styles.textArea} multiline placeholder="Describe the car condition, features, and rental terms... *" value={description} onChangeText={setDescription} />
+              <TextInput style={styles.textArea} multiline placeholder="Description, features, and rental terms... *" value={description} onChangeText={setDescription} />
             </View>
 
             {/* DRIVER INFO CARD */}
             <View style={styles.card}>
-              <Text style={styles.cardHeader}>Driver/Owner Identification</Text>
+              <Text style={styles.cardHeader}>Driver Identification</Text>
               <TextInput style={styles.input} placeholder="Full Name on ID Card *" value={drivername} onChangeText={setDrivername} />
               <TextInput style={styles.input} placeholder="Ghana Card or License Number" value={card} onChangeText={setCard} />
             </View>
@@ -234,13 +244,13 @@ function Rentcarpost({ route }) {
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Location & Contact</Text>
               <ContactField label="Contact Phone *" icon="call-outline" value={phone} onChange={setPhone} country={phoneCountry} onSelect={setPhoneCountry} />
-              <ContactField label="WhatsApp Booking" icon="logo-whatsapp" value={whatsapp} onChange={setWhatsapp} country={whatsappCountry} onSelect={setWhatsappCountry} />
+              <ContactField label="WhatsApp" icon="logo-whatsapp" value={whatsapp} onChange={setWhatsapp} country={whatsappCountry} onSelect={setWhatsappCountry} />
 
               <View style={styles.row}>
                 <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Region" value={region} onChangeText={setRegion} />
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Town" value={town} onChangeText={setTown} />
               </View>
-              <TextInput style={styles.input} placeholder="Pick-up Location / Landmark" value={location} onChangeText={setLocation} />
+              <TextInput style={styles.input} placeholder="Pick-up Landmark" value={location} onChangeText={setLocation} />
             </View>
 
             {error ? <Error message={error} /> : null}
@@ -249,16 +259,9 @@ function Rentcarpost({ route }) {
               {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>Post for Approval</Text>}
             </TouchableOpacity>
 
-            <View style={styles.termsRow}>
-              <Text style={styles.termsText}>By listing, you agree to our </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("terms")}><Text style={styles.linkText}>Terms</Text></TouchableOpacity>
-              <Text style={styles.termsText}> & </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("privacy")}><Text style={styles.linkText}>Privacy</Text></TouchableOpacity>
-            </View>
-
             <Animated.View style={[styles.notice, { transform: [{ scale: pulseAnim }] }]}>
               <MaterialCommunityIcons name="shield-account" size={22} color="#111" />
-              <Text style={styles.noticeText}>Identity Check: Ensure your ID photos are uploaded to your profile for faster approval.</Text>
+              <Text style={styles.noticeText}>Verification: Ensure your ID photos are uploaded to your profile for faster approval.</Text>
             </Animated.View>
 
           </ScrollView>
@@ -295,9 +298,6 @@ const styles = StyleSheet.create({
   flexInput: { flex: 1, fontSize: 16 },
   submitBtn: { backgroundColor: "#000", padding: 18, borderRadius: 16, alignItems: "center", marginTop: 10 },
   submitText: { color: "white", fontWeight: "bold", fontSize: 17 },
-  termsRow: { flexDirection: 'row', alignSelf: 'center', marginTop: 15 },
-  termsText: { fontSize: 12, color: '#666' },
-  linkText: { fontSize: 12, color: '#000', textDecorationLine: 'underline', fontWeight: 'bold' },
   notice: { flexDirection: "row", backgroundColor: "#f5a53d", padding: 16, borderRadius: 18, marginTop: 30, alignItems: "center" },
   noticeText: { flex: 1, marginLeft: 10, fontSize: 12, fontWeight: "bold", color: "#111" }
 });

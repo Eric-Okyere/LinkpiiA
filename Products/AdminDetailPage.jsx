@@ -242,6 +242,10 @@ const AdminDetail = ({ route }) => {
               <MaterialIcons name="map" size={20} color="#f5a53d" />
               <Text style={styles.infoText}>Town: <Text style={styles.boldText}>{item.town}</Text></Text>
             </View>
+            <View style={styles.infoRow}>
+              <MaterialIcons name="map" size={20} color="#f5a53d" />
+              <Text style={styles.infoText}>Area: <Text style={styles.boldText}>{item.location}</Text></Text>
+            </View>
           </View>
 
           <Text style={styles.sectionHeader}>Internal Notes</Text>

@@ -86,7 +86,6 @@ function ServicesPost({ route }) {
   const [error, setError] = useState("");
   const [editItem, setEditItem] = useState(null);
 
-  // Video Player setup
   const player = useVideoPlayer(videoSource, (p) => {
     p.loop = true;
     p.muted = true;
@@ -100,7 +99,7 @@ function ServicesPost({ route }) {
   );
 
   useEffect(() => {
-    // Pulse Animation for Notice
+    // Pulse Animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.03, duration: 900, useNativeDriver: true }),
@@ -108,13 +107,13 @@ function ServicesPost({ route }) {
       ])
     ).start();
 
-    // Load Service Categories
+    // Load Categories
     fetch(`${baseURL}servcat`)
       .then(res => res.json())
       .then(setCategories)
-      .catch(err => console.log("Category Error:", err));
+      .catch(err => console.log(err));
 
-    // Handle Edit Route
+    // Edit logic
     const item = route.params?.item;
     if (item) {
       setEditItem(item);
@@ -137,23 +136,31 @@ function ServicesPost({ route }) {
     }
   }, [isScreenFocused, videoSource, player]);
 
-  const pickMedia = async (type) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Permission Denied", "Gallery access required.");
+const pickMedia = async (type) => {
+  try {
+    const mediaType =
+      type === "video"
+        ? ImagePicker.MediaTypeOptions.Videos
+        : ImagePicker.MediaTypeOptions.Images;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: type === 'video' ? ['videos'] : ['images'],
-      allowsEditing: false,
+      mediaTypes: mediaType,
+      allowsEditing: true,
       quality: 0.8,
+      selectionLimit: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.length > 0) {
       const uri = result.assets[0].uri;
-      if (type === 'pic1') setPicture(uri);
-      if (type === 'pic2') setPicturesec(uri);
-      if (type === 'video') setVideoSource(uri);
+
+      if (type === "pic1") setPicture(uri);
+      if (type === "pic2") setPicturesec(uri);
+      if (type === "video") setVideo(uri);
     }
-  };
+  } catch (err) {
+    Alert.alert("Error", "Could not access media.");
+  }
+};
 
   const handleSubmit = async () => {
     if (!picture || !name || !phone || !category || !description) {
@@ -186,7 +193,7 @@ function ServicesPost({ route }) {
 
       const response = await fetch(url, {
         method,
-        headers: { Accept: "application/json", "Content-Type": "multipart/form-data" },
+        headers: { Accept: "application/json" },
         body: formData,
       });
 
@@ -194,10 +201,10 @@ function ServicesPost({ route }) {
         Alert.alert("Success", editItem ? "Service Updated!" : "Service posted for approval!");
         navigation.navigate("servmana");
       } else {
-        setError("Could not post. Check your connection.");
+        setError("Update failed. Check connection.");
       }
     } catch (err) {
-      setError("Something went wrong. Try again.");
+      setError("Something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -214,7 +221,6 @@ function ServicesPost({ route }) {
               <Text style={styles.subTitle}>Reach more clients by showcasing your skills</Text>
             </View>
 
-            {/* MEDIA SECTION */}
             <View style={styles.mediaContainer}>
               {[ {uri: picture, type: 'pic1', icon: 'camera'}, 
                  {uri: picturesec, type: 'pic2', icon: 'image'}, 
@@ -222,7 +228,7 @@ function ServicesPost({ route }) {
                 <TouchableOpacity key={i} style={styles.mediaBox} onPress={() => pickMedia(item.type)}>
                   {item.uri ? (
                     item.type === 'video' && isScreenFocused ? (
-                      <VideoView player={player} style={styles.fullMedia} allowsFullscreen={false} />
+                      <VideoView player={player} style={styles.fullMedia} />
                     ) : <Image source={{ uri: item.uri }} style={styles.fullMedia} />
                   ) : (
                     <View style={styles.placeholderIcon}>
@@ -235,10 +241,9 @@ function ServicesPost({ route }) {
               ))}
             </View>
 
-            {/* SERVICE INFO CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Service Details</Text>
-              <TextInput style={styles.input} placeholder="Brand or Business Name *" value={name} onChangeText={setName} />
+              <TextInput style={styles.input} placeholder="Brand Name *" value={name} onChangeText={setName} />
               
               <View style={styles.pickerBox}>
                 <Picker selectedValue={category} onValueChange={setCategory}>
@@ -250,13 +255,12 @@ function ServicesPost({ route }) {
               <TextInput 
                 style={styles.textArea} 
                 multiline 
-                placeholder="List services you provide, separated by commas (,)... *" 
+                placeholder="List services separated by commas... *" 
                 value={description} 
                 onChangeText={setDescription} 
               />
             </View>
 
-            {/* CONTACT CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Location & Contact</Text>
               <ContactField 
@@ -274,7 +278,7 @@ function ServicesPost({ route }) {
                 <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Region" value={region} onChangeText={setRegion} />
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Town" value={town} onChangeText={setTown} />
               </View>
-              <TextInput style={styles.input} placeholder="Business Address / Landmark" value={location} onChangeText={setLocation} />
+              <TextInput style={styles.input} placeholder="Landmark" value={location} onChangeText={setLocation} />
             </View>
 
             {error ? <Error message={error} /> : null}
@@ -283,20 +287,9 @@ function ServicesPost({ route }) {
               {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>Post for Approval</Text>}
             </TouchableOpacity>
 
-            <View style={styles.termsRow}>
-              <Text style={styles.termsText}>By posting, you agree to our </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("terms")}>
-                <Text style={styles.linkText}>Terms</Text>
-              </TouchableOpacity>
-              <Text style={styles.termsText}> & </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("privacy")}>
-                <Text style={styles.linkText}>Privacy</Text>
-              </TouchableOpacity>
-            </View>
-
             <Animated.View style={[styles.notice, { transform: [{ scale: pulseAnim }] }]}>
               <MaterialCommunityIcons name="shield-check" size={22} color="#111" />
-              <Text style={styles.noticeText}>ID Verification: Upload your Ghana Card in Profile for service approval.</Text>
+              <Text style={styles.noticeText}>ID Verification: Upload your Ghana Card in Profile for approval.</Text>
             </Animated.View>
 
           </ScrollView>
@@ -313,7 +306,7 @@ const styles = StyleSheet.create({
   mainTitle: { fontSize: 26, fontWeight: "800", color: "#111" },
   subTitle: { fontSize: 14, color: "#666", marginTop: 4 },
   mediaContainer: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
-  mediaBox: { width: (width - 70) / 3, height: 110, backgroundColor: "white", borderRadius: 18, justifyContent: "center", alignItems: "center", elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5 },
+  mediaBox: { width: (width - 70) / 3, height: 110, backgroundColor: "white", borderRadius: 18, justifyContent: "center", alignItems: "center", elevation: 3 },
   fullMedia: { width: "100%", height: "100%", borderRadius: 18 },
   placeholderIcon: { alignItems: 'center' },
   iconLabel: { fontSize: 10, color: '#ccc', marginTop: 4, fontWeight: '600' },
@@ -333,9 +326,6 @@ const styles = StyleSheet.create({
   flexInput: { flex: 1, fontSize: 16 },
   submitBtn: { backgroundColor: "#000", padding: 18, borderRadius: 16, alignItems: "center", marginTop: 10 },
   submitText: { color: "white", fontWeight: "bold", fontSize: 17 },
-  termsRow: { flexDirection: 'row', alignSelf: 'center', marginTop: 15 },
-  termsText: { fontSize: 12, color: '#666' },
-  linkText: { fontSize: 12, color: '#000', textDecorationLine: 'underline', fontWeight: 'bold' },
   notice: { flexDirection: "row", backgroundColor: "#f5a53d", padding: 16, borderRadius: 18, marginTop: 30, alignItems: "center" },
   noticeText: { flex: 1, marginLeft: 10, fontSize: 12, fontWeight: "bold", color: "#111" }
 });

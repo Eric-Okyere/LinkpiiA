@@ -138,7 +138,7 @@ function PhoneCall({ route }) {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-      <ScrollView style={{ backgroundColor: "#F4F6F8" }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ backgroundColor: "#F4F6F8"}} showsVerticalScrollIndicator={false}>
         
         {/* Header Section */}
         <View style={styles.headerContainer}>
@@ -175,7 +175,7 @@ function PhoneCall({ route }) {
             <Entypo name="location-pin" size={18} color="#007BFF" />
             <Text style={styles.sectionTitle}>Operating Route</Text>
           </View>
-          <Text style={styles.locationDetail}>{item.region} — {item.town}</Text>
+          <Text style={styles.locationDetail}>{item.region} — {item.town} - {item.location}</Text>
           <Image source={{ uri: item.driverpic }} style={styles.driverCardImage} resizeMode="cover" />
         </View>
 

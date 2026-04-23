@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Dimensions,
@@ -11,26 +11,29 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Modal as RNModal,
   Image,
   StatusBar,
+  Alert,
+  BackHandler,
 } from 'react-native';
 import {
-  Entypo,
   MaterialIcons,
   FontAwesome,
   Feather,
+  Ionicons
 } from "@expo/vector-icons";
 import { useSelector } from 'react-redux';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import baseURL from '../../assets/common/BaseUrl';
 
 const { width, height } = Dimensions.get('window');
 
+// --- Video Component ---
 const VideoPlayerItem = ({ uri, isVisible }) => {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
-    if (isVisible) p.play();
+    if (isVisible) player.play();
   });
   useEffect(() => {
     isVisible ? player.play() : player.pause();
@@ -39,29 +42,54 @@ const VideoPlayerItem = ({ uri, isVisible }) => {
 };
 
 const DetailPage = ({ route }) => {
-  const myProducts = useSelector((state) => state);
+  const userId = useSelector((state) => state.user);
+  const navigation = useNavigation();
   const scrollViewRef = useRef(null);
+  const carouselRef = useRef(null);
 
-  // --- Dynamic State ---
+  // --- State ---
   const [localItem, setLocalItem] = useState(route.params);
   const [images, setImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(true);
-  const [visibleComments, setVisibleComments] = useState(2);
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  
-  // Edit/Delete States
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
-  const [deleteCommentId, setDeleteCommentId] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
+  // --- 1. Automatic Carousel Logic ---
   useEffect(() => {
-    const media = [
-      { type: 'image', uri: localItem.picture },
-      { type: 'image', uri: localItem.picturesec },
-    ];
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      let nextIndex = (currentIndex + 1) % images.length;
+      carouselRef.current?.scrollTo({ x: nextIndex * width, animated: true });
+      setCurrentIndex(nextIndex);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [currentIndex, images.length]);
+
+  // --- 2. Corrected Hardware Back Button Handling ---
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+
+      // Modern way: addEventListener returns a subscription object
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Corrected cleanup using subscription.remove()
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
+  // --- 3. Data Fetching ---
+  useEffect(() => {
+    const media = [{ type: 'image', uri: localItem.picture }];
+    if (localItem.picturesec) media.push({ type: 'image', uri: localItem.picturesec });
     if (localItem.video) media.push({ type: 'video', uri: localItem.video });
     
     setImages(media);
@@ -75,7 +103,8 @@ const DetailPage = ({ route }) => {
     try {
       const res = await fetch(`${baseURL}sparecomment/comments/${id}`);
       const data = await res.json();
-      setComments(data.comments || []);
+      const sorted = (data.comments || []).sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
+      setComments(sorted);
     } catch (e) { console.error(e); }
     finally { setIsCommentsLoading(false); }
   };
@@ -84,238 +113,241 @@ const DetailPage = ({ route }) => {
     try {
       const res = await fetch(`${baseURL}sparepartsmainpost/${id}/related`);
       const data = await res.json();
-      setRelatedProducts(data);
+      setRelatedProducts(data || []);
     } catch (e) { console.error(e); }
   };
 
-  // --- Actions ---
-  const handleRelatedProductPress = (product) => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    setEditingCommentId(null); // Close any open edits
-    setDeleteCommentId(null);  // Close any open delete modals
-    setLocalItem(product);
-  };
-
+  // --- 4. Comment Actions ---
   const handlePostComment = async () => {
     if (!comment.trim()) return;
+    setIsActionLoading(true);
     try {
       const response = await fetch(`${baseURL}sparecomment/${localItem._id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: myProducts.user, content: comment })
+        body: JSON.stringify({ userId: userId, content: comment })
       });
       if (response.ok) {
         setComment('');
         fetchComments(localItem._id);
       }
     } catch (e) { console.error(e); }
+    finally { setIsActionLoading(false); }
   };
 
-  const saveEditComment = async (commentId) => {
+  const saveEditComment = async (id) => {
+    if (!editingContent.trim()) return;
+    setIsActionLoading(true);
     try {
-      const response = await fetch(`${baseURL}sparecomment/comments/${commentId}`, {
+      const res = await fetch(`${baseURL}sparecomment/comments/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: editingContent }),
+        body: JSON.stringify({ content: editingContent.trim() }),
       });
-      if (response.ok) {
+      if (res.ok) {
         setEditingCommentId(null);
         fetchComments(localItem._id);
       }
     } catch (e) { console.error(e); }
+    finally { setIsActionLoading(false); }
   };
 
-  const handleDeleteComment = async () => {
-    try {
-      const response = await fetch(`${baseURL}sparecomment/comments/${deleteCommentId}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setDeleteCommentId(null);
-        fetchComments(localItem._id);
-      }
-    } catch (e) { console.error(e); }
+  const handleDeleteComment = (id) => {
+    Alert.alert("Delete Review", "Remove this message permanently?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+          await fetch(`${baseURL}sparecomment/comments/${id}`, { method: 'DELETE' });
+          fetchComments(localItem._id);
+      }}
+    ]);
   };
 
   const openDial = () => Linking.openURL(`tel:${localItem.phone}`);
   const openWhatsapp = () => Linking.openURL(`https://wa.me/${localItem.whatsapp}`);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        
-        {/* Carousel */}
-        <View style={styles.carouselContainer}>
-          <ScrollView
-            horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
-          >
-            {images.map((img, idx) => (
-              <View key={idx} style={styles.mediaFrame}>
-                {img.type === 'image' ? (
-                  <Image source={{ uri: img.uri }} style={styles.mediaMain} resizeMode="cover" />
-                ) : (
-                  <VideoPlayerItem uri={img.uri} isVisible={idx === currentIndex} />
-                )}
-              </View>
-            ))}
-          </ScrollView>
-          <View style={styles.indicatorContainer}>
-            {images.map((_, i) => <View key={i} style={[styles.dot, currentIndex === i && styles.activeDot]} />)}
-          </View>
-        </View>
-
-        <View style={styles.contentBody}>
-          <View style={styles.headerSection}>
-            <Text style={styles.productName}>{localItem.name}</Text>
-            <Text style={styles.productPrice}>Gh₵{localItem.price?.toLocaleString()}</Text>
-          </View>
-
-          <View style={styles.divider} />
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>{localItem.description}</Text>
-
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}><Entypo name="location" size={16} color="#f5a53d" /><Text style={styles.infoLabel}>Region: <Text style={styles.infoValue}>{localItem.region}</Text></Text></View>
-            <View style={styles.infoRow}><Entypo name="location-pin" size={18} color="#f5a53d" /><Text style={styles.infoLabel}>Town: <Text style={styles.infoValue}>{localItem.town}</Text></Text></View>
-          </View>
-
-          <View style={styles.actionGrid}>
-            <TouchableOpacity style={styles.actionBtnOutline} onPress={openDial}>
-              <Feather name="phone-call" size={18} color="#00bb2d" /><Text style={[styles.actionText, { color: '#00bb2d' }]}>Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtnSolid} onPress={openWhatsapp}>
-              <FontAwesome name="whatsapp" size={20} color="#FFF" /><Text style={[styles.actionText, { color: '#FFF' }]}>WhatsApp</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Comments Section */}
-          <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Reviews</Text>
-          <View style={styles.commentInputBox}>
-            <TextInput style={styles.inputField} placeholder="Leave a review..." value={comment} onChangeText={setComment} />
-            <TouchableOpacity onPress={handlePostComment} disabled={!comment.trim()}>
-              <MaterialIcons name="send" size={24} color={comment.trim() ? "#f5a53d" : "#CCC"} />
-            </TouchableOpacity>
-          </View>
-
-          {isCommentsLoading ? <ActivityIndicator color="#f5a53d" /> : (
-            comments.slice(0, visibleComments).map((c) => (
-              <View key={c._id} style={styles.commentCard}>
-                <View style={styles.commentHeader}>
-                  <Text style={styles.commentUser}>{c.user?.name || 'Customer'}</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, }}>
+        <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+          
+          {/* Automatic Carousel */}
+          <View style={styles.carouselContainer}>
+            <ScrollView
+              ref={carouselRef}
+              horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+            >
+              {images.map((img, idx) => (
+                <View key={idx} style={styles.mediaFrame}>
+                  {img.type === 'image' ? (
+                    <Image source={{ uri: img.uri }} style={styles.mediaMain} resizeMode="cover" />
+                  ) : (
+                    <VideoPlayerItem uri={img.uri} isVisible={idx === currentIndex} />
+                  )}
                 </View>
+              ))}
+            </ScrollView>
+            <View style={styles.indicatorContainer}>
+              {images.map((_, i) => <View key={i} style={[styles.dot, currentIndex === i && styles.activeDot]} />)}
+            </View>
+          </View>
 
-                {editingCommentId === c._id ? (
-                  <View style={styles.editWrapper}>
-                    <TextInput style={styles.editInput} value={editingContent} onChangeText={setEditingContent} multiline />
-                    <View style={styles.editBtnRow}>
-                      <TouchableOpacity onPress={() => setEditingCommentId(null)}><Text style={styles.cancelLink}>Cancel</Text></TouchableOpacity>
-                      <TouchableOpacity onPress={() => saveEditComment(c._id)} style={styles.saveBtn}><Text style={styles.saveBtnText}>Save</Text></TouchableOpacity>
+          <View style={styles.contentBody}>
+            <View style={styles.headerSection}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.brandTag}>SPARE PARTS</Text>
+                <Text style={styles.productName}>{localItem.name}</Text>
+              </View>
+              <View style={styles.priceContainer}>
+                <Text style={styles.productPrice}>Gh₵{localItem.price?.toLocaleString()}</Text>
+              </View>
+            </View>
+
+            <View style={styles.locationTag}>
+              <Ionicons name="location-sharp" size={14} color="#f5a53d" />
+              <Text style={styles.locationText}>{localItem.region} • {localItem.town}</Text>
+            </View>
+
+            <View style={styles.divider} />
+            
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <Text style={styles.descriptionText}>{localItem.description}</Text>
+
+            <View style={styles.actionGrid}>
+              <TouchableOpacity style={styles.callBtn} onPress={openDial}>
+                <Feather name="phone" size={18} color="#FFF" />
+                <Text style={styles.btnText}>Call Seller</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.waBtn} onPress={openWhatsapp}>
+                <FontAwesome name="whatsapp" size={20} color="#FFF" />
+                <Text style={styles.btnText}>WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.reviewHeader}>
+              <Text style={styles.sectionTitle}>Customer Reviews</Text>
+              <Text style={styles.reviewCount}>{comments.length} reviews</Text>
+            </View>
+
+            <View style={styles.commentInputWrapper}>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Ask a question..." 
+                value={comment} 
+                onChangeText={setComment} 
+              />
+              <TouchableOpacity 
+                onPress={handlePostComment} 
+                disabled={!comment.trim() || isActionLoading}
+                style={[styles.sendBtn, !comment.trim() && { backgroundColor: '#EEE' }]}
+              >
+                {isActionLoading ? <ActivityIndicator size="small" color="#FFF" /> : <MaterialIcons name="arrow-upward" size={20} color={comment.trim() ? "#FFF" : "#999"} />}
+              </TouchableOpacity>
+            </View>
+
+            {isCommentsLoading ? <ActivityIndicator color="#f5a53d" /> : (
+              comments.map((c) => (
+                <View key={c._id} style={styles.commentCard}>
+                  <View style={styles.commentUserRow}>
+                    <View style={styles.avatar}><Text style={styles.avatarTxt}>{c.user?.name?.charAt(0) || 'U'}</Text></View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.commentUser}>{c.user?.name || 'User'}</Text>
                     </View>
-                  </View>
-                ) : (
-                  <>
-                    <Text style={styles.commentText}>{c.content}</Text>
-                    {c.user?._id === myProducts.user && (
-                      <View style={styles.metaRow}>
-                        <TouchableOpacity onPress={() => { setEditingCommentId(c._id); setEditingContent(c.content); }} style={styles.metaBtn}>
-                          <Feather name="edit-2" size={12} color="#666" /><Text style={styles.metaText}>Edit</Text>
+                    
+                    {c.user?._id === userId && editingCommentId !== c._id && (
+                      <View style={styles.miniActions}>
+                        <TouchableOpacity onPress={() => { setEditingCommentId(c._id); setEditingContent(c.content); }}>
+                          <Feather name="edit-3" size={14} color="#666" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setDeleteCommentId(c._id)} style={styles.metaBtn}>
-                          <Feather name="trash-2" size={12} color="red" /><Text style={[styles.metaText, { color: 'red' }]}>Delete</Text>
+                        <TouchableOpacity onPress={() => handleDeleteComment(c._id)} style={{ marginLeft: 15 }}>
+                          <Feather name="trash-2" size={14} color="#FF5252" />
                         </TouchableOpacity>
                       </View>
                     )}
-                  </>
-                )}
-              </View>
-            ))
-          )}
+                  </View>
 
-          {/* Related Products Grid */}
-          <Text style={[styles.sectionTitle, { marginTop: 40 }]}>Related Products</Text>
-          <View style={styles.relatedGrid}>
-            {relatedProducts.map((prod) => (
-              <TouchableOpacity key={prod._id} style={styles.gridCard} onPress={() => handleRelatedProductPress(prod)}>
-                <Image source={{ uri: prod.picture }} style={styles.gridImg} />
-                <View style={styles.gridContent}>
-                  <Text numberOfLines={1} style={styles.gridName}>{prod.name}</Text>
-                  <Text style={styles.gridPrice}>Gh₵{prod.price}</Text>
+                  {editingCommentId === c._id ? (
+                    <View style={styles.editBox}>
+                      <TextInput style={styles.editInput} value={editingContent} onChangeText={setEditingContent} multiline />
+                      <View style={styles.editButtons}>
+                        <TouchableOpacity onPress={() => setEditingCommentId(null)}><Text style={styles.cancelTxt}>Cancel</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => saveEditComment(c._id)} style={styles.updateBtn}><Text style={styles.updateTxt}>Update</Text></TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={styles.commentText}>{c.content}</Text>
+                  )}
                 </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
+              ))
+            )}
 
-      {/* Delete Modal */}
-      <RNModal visible={deleteCommentId !== null} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Comment?</Text>
-            <View style={styles.modalBtns}>
-              <TouchableOpacity onPress={() => setDeleteCommentId(null)}><Text style={styles.modalCancel}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.modalDelBtn} onPress={handleDeleteComment}><Text style={styles.modalDelTxt}>Delete</Text></TouchableOpacity>
+            <Text style={[styles.sectionTitle, { marginTop: 40 }]}>Related Listings</Text>
+            <View style={styles.relatedGrid}>
+              {relatedProducts.map((prod) => (
+                <TouchableOpacity key={prod._id} style={styles.gridCard} onPress={() => setLocalItem(prod)}>
+                  <Image source={{ uri: prod.picture }} style={styles.gridImg} />
+                  <View style={styles.gridInfo}>
+                    <Text numberOfLines={1} style={styles.gridName}>{prod.name}</Text>
+                    <Text style={styles.gridPrice}>Gh₵{prod.price}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
-        </View>
-      </RNModal>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  carouselContainer: { width, height: height * 0.35, backgroundColor: '#000' },
-  mediaFrame: { width, height: height * 0.35 },
+  container: { flex: 1, backgroundColor: '#FFF', top: 40 },
+  carouselContainer: { width, height: height * 0.38, backgroundColor: '#000' },
+  mediaFrame: { width, height: height * 0.38 },
   mediaMain: { width: '100%', height: '100%' },
-  indicatorContainer: { position: 'absolute', bottom: 15, flexDirection: 'row', alignSelf: 'center' },
+  indicatorContainer: { position: 'absolute', bottom: 20, flexDirection: 'row', alignSelf: 'center' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)', marginHorizontal: 4 },
-  activeDot: { width: 15, backgroundColor: '#f5a53d' },
-  contentBody: { padding: 20 },
-  headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  productName: { fontSize: 20, fontWeight: '800', flex: 1 },
-  productPrice: { fontSize: 18, fontWeight: '700', color: '#f5a53d' },
-  divider: { height: 1, backgroundColor: '#EEE', marginVertical: 15 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
-  descriptionText: { fontSize: 14, color: '#666', lineHeight: 22 },
-  infoCard: { backgroundColor: '#F9F9F9', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#EEE', marginTop: 15 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  infoLabel: { fontSize: 13, color: '#888', marginLeft: 10 },
-  infoValue: { color: '#333', fontWeight: '600' },
-  actionGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
-  actionBtnOutline: { flex: 0.48, height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: '#00bb2d', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  actionBtnSolid: { flex: 0.48, height: 48, borderRadius: 12, backgroundColor: '#00bb2d', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  actionText: { marginLeft: 8, fontWeight: '700' },
-  commentInputBox: { flexDirection: 'row', backgroundColor: '#F5F7F9', borderRadius: 25, paddingHorizontal: 15, alignItems: 'center', height: 48, marginBottom: 20 },
-  inputField: { flex: 1, fontSize: 14 },
-  commentCard: { borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingVertical: 12 },
-  commentHeader: { marginBottom: 4 },
-  commentUser: { fontWeight: '700', fontSize: 13 },
-  commentText: { fontSize: 14, color: '#555' },
-  metaRow: { flexDirection: 'row', marginTop: 8 },
-  metaBtn: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
-  metaText: { fontSize: 12, marginLeft: 4, color: '#888' },
-  editWrapper: { marginTop: 5, backgroundColor: '#F9F9F9', padding: 10, borderRadius: 8 },
-  editInput: { fontSize: 14, minHeight: 60, textAlignVertical: 'top' },
-  editBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 10 },
-  cancelLink: { color: '#888', marginRight: 15 },
-  saveBtn: { backgroundColor: '#f5a53d', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  saveBtnText: { color: '#FFF', fontWeight: '700' },
+  activeDot: { width: 18, backgroundColor: '#FFF' },
+  contentBody: { padding: 24 },
+  headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  brandTag: { fontSize: 10, fontWeight: 'bold', color: '#f5a53d', letterSpacing: 1, marginBottom: 4 },
+  productName: { fontSize: 22, fontWeight: '800', color: '#1A1A1A', flex: 1 },
+  priceContainer: { backgroundColor: '#FFF9F0', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  productPrice: { fontSize: 18, fontWeight: '800', color: '#f5a53d' },
+  locationTag: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  locationText: { fontSize: 13, color: '#666', marginLeft: 5, fontWeight: '500' },
+  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 20 },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A1A', marginBottom: 12 },
+  descriptionText: { fontSize: 15, color: '#555', lineHeight: 24 },
+  actionGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 30 },
+  callBtn: { flex: 0.48, height: 54, borderRadius: 15, backgroundColor: '#1A1A1A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  waBtn: { flex: 0.48, height: 54, borderRadius: 15, backgroundColor: '#25D366', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  btnText: { marginLeft: 10, color: '#FFF', fontWeight: 'bold', fontSize: 15 },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 15 },
+  reviewCount: { fontSize: 12, color: '#999', fontWeight: '600' },
+  commentInputWrapper: { flexDirection: 'row', backgroundColor: '#F3F5F7', borderRadius: 18, paddingLeft: 16, paddingRight: 8, alignItems: 'center', height: 56, marginBottom: 20 },
+  input: { flex: 1, fontSize: 15, color: '#1A1A1A' },
+  sendBtn: { backgroundColor: '#f5a53d', width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  commentCard: { paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  commentUserRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E8ECEF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  avatarTxt: { fontSize: 12, fontWeight: 'bold', color: '#666' },
+  commentUser: { fontWeight: '700', fontSize: 14, color: '#1A1A1A' },
+  commentText: { fontSize: 14, color: '#4A4A4A', lineHeight: 20 },
+  miniActions: { flexDirection: 'row', alignItems: 'center' },
+  editBox: { backgroundColor: '#F9F9F9', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#f5a53d', marginTop: 5 },
+  editInput: { fontSize: 14, color: '#333', minHeight: 40 },
+  editButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, alignItems: 'center' },
+  cancelTxt: { color: '#888', marginRight: 15, fontSize: 13, fontWeight: '600' },
+  updateBtn: { backgroundColor: '#1A1A1A', paddingHorizontal: 15, paddingVertical: 7, borderRadius: 8 },
+  updateTxt: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
   relatedGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  gridCard: { width: (width - 50) / 2, backgroundColor: '#FFF', borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#EEE' },
-  gridImg: { width: '100%', height: 120, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  gridContent: { padding: 10 },
-  gridName: { fontSize: 12, fontWeight: '700' },
-  gridPrice: { fontSize: 13, color: '#f5a53d', fontWeight: '800' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 40 },
-  modalContent: { backgroundColor: '#FFF', borderRadius: 12, padding: 20 },
-  modalTitle: { fontSize: 16, fontWeight: '800', marginBottom: 20 },
-  modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-  modalCancel: { color: '#888', marginRight: 20, fontWeight: '700' },
-  modalDelBtn: { backgroundColor: 'red', padding: 8, borderRadius: 6 },
-  modalDelTxt: { color: '#FFF', fontWeight: '700' }
+  gridCard: { width: (width - 64) / 2, backgroundColor: '#FFF', borderRadius: 18, marginBottom: 20, borderWidth: 1, borderColor: '#F0F0F0' },
+  gridImg: { width: '100%', height: 130, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  gridInfo: { padding: 12 },
+  gridName: { fontSize: 13, fontWeight: '700', color: '#1A1A1A' },
+  gridPrice: { fontSize: 14, color: '#f5a53d', fontWeight: '800', marginTop: 4 }
 });
 
 export default DetailPage;

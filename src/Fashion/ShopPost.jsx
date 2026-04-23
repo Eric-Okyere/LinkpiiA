@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import {
-  Linking,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -8,523 +7,313 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Animated,
   Dimensions,
-  Text
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Alert
 } from "react-native";
-
-import { FontAwesome6, Feather } from "@expo/vector-icons";
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome6, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
+import CountryPicker from 'react-native-country-picker-modal';
 import baseURL from "../../assets/common/BaseUrl";
 import Error from "../../src/User/Error";
 import { useNavigation } from "@react-navigation/native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Picker } from "@react-native-picker/picker";
 
+const { width } = Dimensions.get("window");
+
+// --- REUSABLE CONTACT COMPONENT ---
+const ContactField = memo(({ label, value, onChange, country, onSelect, icon }) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <View style={styles.phoneRow}>
+      <View style={styles.countryWrap}>
+        <CountryPicker
+          countryCode={country.code}
+          withFilter withFlag withCallingCode
+          onSelect={(c) => onSelect({ code: c.cca2, callingCode: c.callingCode[0] })}
+        />
+        <Text style={styles.dialText}>+{country.callingCode}</Text>
+      </View>
+      <View style={styles.phoneInputWrap}>
+        <Ionicons name={icon} size={18} color="#999" style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.flexInput}
+          placeholder="Number"
+          keyboardType="phone-pad"
+          value={value}
+          onChangeText={t => onChange(t.replace(/^0/, ''))}
+        />
+      </View>
+    </View>
+  </View>
+));
+
 function ShopPost() {
+  const navigation = useNavigation();
+  const userId = useSelector((state) => state.user?.user?.userId || state.user);
 
-const navigation = useNavigation()
-const { width } = Dimensions.get("window")
+  // Media States
+  const [picture, setPicture] = useState(null);
+  const [picturesec, setPicturesec] = useState(null);
+  const [video, setVideo] = useState(null);
+  
+  // Form Fields
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  // const [discount, setDiscount] = useState("");
+  const [pickerValue, setPickerValue] = useState("");
+  const [error, setError] = useState("");
+  const [location, setLocation] = useState("");
+  const [region, setRegion] = useState("");
+  const [town, setTown] = useState("");
+  // const [condition, setCondition] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-const userId = useSelector((state)=>state.user)
+  // Contact States
+  const [phone, setPhone] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState({ code: 'GH', callingCode: '233' });
+  const [whatsapp, setWhatsapp] = useState("");
+  const [whatsappCountry, setWhatsappCountry] = useState({ code: 'GH', callingCode: '233' });
 
-const [picture,setPicture] = useState(null)
-const [picturesec,setPicturesec] = useState(null)
-const [video,setVideo] = useState(null)
+  // expo-video player
+  const player = useVideoPlayer(video, (p) => {
+    p.loop = true;
+    p.muted = true;
+    if (video) p.play();
+  });
 
-const [hasGalleryPermission,setHasGalleryPermission] = useState(null)
+  useEffect(() => {
+    fetch(`${baseURL}shopscat`)
+      .then(res => res.json())
+      .then(results => setCategories(results))
+      .catch(err => console.log(err));
+  }, []);
 
-const [name,setName] = useState("")
-const [price,setPrice] = useState("")
-const [phone,setPhone] = useState("")
-const [description,setDescription] = useState("")
-const [discount,setDiscount] = useState("")
-const [pickerValue,setPickerValue] = useState()
+const pickMedia = async (type) => {
+  try {
+    const mediaType =
+      type === "video"
+        ? ImagePicker.MediaTypeOptions.Videos
+        : ImagePicker.MediaTypeOptions.Images;
 
-const [error,setError] = useState("")
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: mediaType,
+      allowsEditing: true,
+      quality: 0.8,
+      selectionLimit: 1,
+    });
 
-const [location,setLocation] = useState("")
-const [region,setRegion] = useState("")
-const [town,setTown] = useState("")
-const [whatsapp,setWhatsapp] = useState("")
+    if (!result.canceled && result.assets?.length > 0) {
+      const uri = result.assets[0].uri;
 
-const [category,setCategory] = useState("")
-const [condition,setCondition] = useState("")
+      if (type === "pic1") setPicture(uri);
+      if (type === "pic2") setPicturesec(uri);
+      if (type === "video") setVideo(uri);
+    }
+  } catch (err) {
+    Alert.alert("Error", "Could not access media.");
+  }
+};
 
-const [categories,setCategories] = useState([])
+  const handleSubmit = async () => {
+    if (!picture || !picturesec || !pickerValue || !name || !phone || !price || !description || !region || !town) {
+      setError("Please fill all required fields (*)");
+      return;
+    }
 
-const [isLoading,setIsLoading] = useState(false)
-const [isVideoLoading,setIsVideoLoading] = useState(false)
+    setIsLoading(true);
+    setError("");
 
-const translateX = useRef(new Animated.Value(0)).current
+    try {
+      const formData = new FormData();
+      formData.append("picture", { uri: picture, type: "image/jpeg", name: `s1_${Date.now()}.jpg` });
+      formData.append("picturesec", { uri: picturesec, type: "image/jpeg", name: `s2_${Date.now()}.jpg` });
 
-// expo-video player
-const player = useVideoPlayer(video || "", (p)=>{
-p.loop = true
-})
+      if (video) {
+        formData.append("video", { uri: video, type: "video/mp4", name: `sv_${Date.now()}.mp4` });
+      }
 
+      formData.append("name", name);
+      // formData.append("discount", discount || "0");
+      formData.append("description", description);
+      // formData.append("condition", condition);
+      formData.append("region", region);
+      formData.append("town", town);
+      formData.append("location", location);
+      formData.append("category", pickerValue);
+      formData.append("phone", `+${phoneCountry.callingCode}${phone}`);
+      formData.append("whatsapp", `+${whatsappCountry.callingCode}${whatsapp}`);
+      formData.append("price", price);
+      formData.append("userId", userId);
 
+      const response = await fetch(`${baseURL}shops`, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: formData,
+      });
 
-useEffect(()=>{
+      if (response.ok) {
+        Alert.alert("Success", "Shop item posted for approval!");
+        navigation.navigate("Home");
+      } else {
+        setError("Failed to post item. Check your data.");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-;(async()=>{
-const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync()
-setHasGalleryPermission(galleryStatus.status === "granted")
-})()
+  const Label = ({ title, required }) => (
+    <Text style={styles.label}>{title} {required && <Text style={{color: 'red'}}>*</Text>}</Text>
+  );
 
-fetch(`${baseURL}shopscat`)
-.then(res=>res.json())
-.then(results=>{
-setCategories(results)
-})
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+            
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Post to Shop</Text>
+              <Text style={styles.headerSub}>Sell electronics, home appliances, and more</Text>
+            </View>
 
-},[])
+            {/* Media Upload Card */}
+            <View style={styles.card}>
+              <Label title="Product Media" required />
+              <View style={styles.mediaRow}>
+                <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('pic1')}>
+                  {picture ? <Image source={{ uri: picture }} style={styles.mediaImage} /> : <Ionicons name="camera-outline" size={28} color="#999" />}
+                  <View style={styles.plusBadge}><FontAwesome6 name="plus" size={10} color="white" /></View>
+                </TouchableOpacity>
 
+                <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('pic2')}>
+                  {picturesec ? <Image source={{ uri: picturesec }} style={styles.mediaImage} /> : <Ionicons name="image-outline" size={28} color="#999" />}
+                  <View style={styles.plusBadge}><FontAwesome6 name="plus" size={10} color="white" /></View>
+                </TouchableOpacity>
 
+                <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('video')}>
+                   {video ? <VideoView player={player} style={styles.mediaImage} /> : <Ionicons name="videocam-outline" size={28} color="#999" />}
+                   <View style={[styles.plusBadge, {backgroundColor: '#444'}]}><FontAwesome6 name="video" size={8} color="white" /></View>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-useEffect(()=>{
+            {/* Product Details Card */}
+            <View style={styles.card}>
+              <Label title="Item Information" required />
+              <TextInput style={styles.input} placeholder="Product Name *" value={name} onChangeText={setName} />
+            
 
-if(video){
-player.play()
-setIsVideoLoading(false)
+              {/* <View style={styles.pickerWrapper}>
+                <Picker selectedValue={condition} onValueChange={setCondition}>
+                  <Picker.Item label="Condition *" value="" color="#aaa" />
+                  <Picker.Item label="New / Sealed" value="new" />
+                  <Picker.Item label="Used" value="used" />
+                </Picker>
+              </View> */}
+
+              <View style={styles.pickerWrapper}>
+                <Picker selectedValue={pickerValue} onValueChange={setPickerValue}>
+                  <Picker.Item label="Category *" value="" color="#aaa" />
+                  {categories.map((c) => <Picker.Item key={c._id} label={c.name} value={c._id} />)}
+                </Picker>
+              </View>
+
+              <TextInput style={styles.textarea} multiline placeholder="Describe product features... *" value={description} onChangeText={setDescription} />
+            </View>
+
+            {/* Contact Card */}
+            <View style={styles.card}>
+              <Label title="Contact & Location" required />
+              <ContactField 
+                label="Call Number *" icon="call-outline" 
+                value={phone} onChange={setPhone} 
+                country={phoneCountry} onSelect={setPhoneCountry} 
+              />
+              <ContactField 
+                label="WhatsApp Number" icon="logo-whatsapp" 
+                value={whatsapp} onChange={setWhatsapp} 
+                country={whatsappCountry} onSelect={setWhatsappCountry} 
+              />
+
+              <View style={styles.row}>
+                <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Region *" value={region} onChangeText={setRegion} />
+                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Town *" value={town} onChangeText={setTown} />
+              </View>
+              <TextInput style={styles.input} placeholder="Detailed Location" value={location} onChangeText={setLocation} />
+            </View>
+
+            {error ? <Error message={error} /> : null}
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>Post for Approval</Text>}
+            </TouchableOpacity>
+
+            <View style={styles.footerLinks}>
+              <Text style={styles.footerText}>By posting you agree to </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("terms")}><Text style={styles.boldLink}>Terms</Text></TouchableOpacity>
+              <Text style={styles.footerText}> & </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("privacy")}><Text style={styles.boldLink}>Privacy</Text></TouchableOpacity>
+            </View>
+
+            <View style={styles.noticeBox}>
+              <MaterialIcons name="verified-user" size={20} color="black" />
+              <Text style={styles.noticeText}>
+                ID verification is required via your profile menu for listings to go live.
+              </Text>
+            </View>
+
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
-
-},[video])
-
-
-
-useEffect(()=>{
-
-Animated.loop(
-Animated.sequence([
-Animated.timing(translateX,{
-toValue:width-200,
-duration:3000,
-useNativeDriver:true
-}),
-Animated.timing(translateX,{
-toValue:0,
-duration:3000,
-useNativeDriver:true
-})
-])
-).start()
-
-},[])
-
-
-
-const openImagePicker = async()=>{
-
-if(!hasGalleryPermission) return
-
-const result = await ImagePicker.launchImageLibraryAsync({
-mediaTypes: ['images'],
-quality:1
-})
-
-if(!result.canceled){
-setPicture(result.assets[0].uri)
-}
-
-}
-
-
-
-const openPicker = async()=>{
-
-if(!hasGalleryPermission) return
-
-const result = await ImagePicker.launchImageLibraryAsync({
-mediaTypes:['images'],
-quality:1
-})
-
-if(!result.canceled){
-setPicturesec(result.assets[0].uri)
-}
-
-}
-
-
-
-const openVideoPicker = async()=>{
-
-if(!hasGalleryPermission) return
-
-const result = await ImagePicker.launchImageLibraryAsync({
-mediaTypes:['videos'],
-quality:1
-})
-
-if(!result.canceled){
-setVideo(result.assets[0].uri)
-setIsVideoLoading(true)
-}
-
-}
-
-
-
-const handleSubmit = async()=>{
-
-const credentials =
-picture &&
-condition &&
-picturesec &&
-pickerValue &&
-name &&
-phone &&
-price &&
-description &&
-location &&
-region &&
-town &&
-whatsapp &&
-category
-
-if(!credentials){
-setError("Please fill in the credentials")
-return
-}
-
-setIsLoading(true)
-
-try{
-
-const formData = new FormData()
-
-formData.append("picture",{
-uri:picture,
-type:"image/jpeg",
-name:"image.jpg"
-})
-
-formData.append("picturesec",{
-uri:picturesec,
-type:"image/jpeg",
-name:"image.jpg"
-})
-
-if(video){
-formData.append("video",{
-uri:video,
-type:"video/mp4",
-name:"video.mp4"
-})
-}
-
-formData.append("name",name)
-formData.append("discount",discount)
-formData.append("description",description)
-formData.append("condition",condition)
-formData.append("region",region)
-formData.append("town",town)
-formData.append("location",location)
-formData.append("category",category)
-formData.append("phone",phone)
-formData.append("whatsapp",whatsapp)
-formData.append("price",price)
-formData.append("userId",userId)
-
-const response = await fetch(`${baseURL}shops`,{
-method:"POST",
-headers:{
-Accept:"application/json",
-"Content-Type":"multipart/form-data"
-},
-body:formData
-})
-
-await response.json()
-
-navigation.navigate("Home")
-
-}catch(err){
-console.log(err)
-}
-
-setIsLoading(false)
-
-}
-
-
-
-if(hasGalleryPermission === false){
-return(
-<View style={{alignItems:"center",marginTop:60}}>
-<Text>Permission denied</Text>
-
-<TouchableOpacity
-style={styles.permissionButton}
-onPress={()=>Linking.openSettings()}
->
-<Text style={{color:"white"}}>Go to settings</Text>
-</TouchableOpacity>
-
-</View>
-)
-}
-
-
-
-return(
-
-<View style={styles.container}>
-
-<ScrollView showsVerticalScrollIndicator={false}>
-
-<View style={styles.imageRow}>
-
-<View style={styles.imagecont}>
-<Image source={{uri:picture}} style={styles.image}/>
-<TouchableOpacity style={styles.imagePicker} onPress={openImagePicker}>
-<FontAwesome6 name="circle-plus" size={24}/>
-</TouchableOpacity>
-</View>
-
-<View style={styles.imagecont}>
-<Image source={{uri:picturesec}} style={styles.image}/>
-<TouchableOpacity style={styles.imagePicker} onPress={openPicker}>
-<FontAwesome6 name="circle-plus" size={24}/>
-</TouchableOpacity>
-</View>
-
-<View style={styles.imagecont}>
-
-{isVideoLoading && <ActivityIndicator size="large" color="#f5a53d"/>}
-
-{video && (
-<VideoView
-player={player}
-style={styles.vid}
-fullscreenOptions={{ enabled: true }}
-pictureInPicture
-/>
-)}
-
-<TouchableOpacity style={styles.imagePicker} onPress={openVideoPicker}>
-<FontAwesome6 name="video" size={20} color="white"/>
-</TouchableOpacity>
-
-</View>
-
-</View>
-
-
-<TextInput
-style={styles.input}
-placeholder="Enter product name"
-value={name}
-onChangeText={setName}
-/>
-
-<TextInput
-style={styles.input}
-placeholder="Phone number e.g +233247747624"
-value={phone}
-onChangeText={setPhone}
-/>
-
-<TextInput
-style={styles.input}
-keyboardType="numeric"
-placeholder="Whatsapp e.g 233247747624"
-value={whatsapp}
-onChangeText={(text)=>{
-const filtered = text.replace(/^0|[^\d]/g,'')
-setWhatsapp(filtered)
-}}
-/>
-
-
-
-<TextInput style={styles.input} placeholder="Region" value={region} onChangeText={setRegion}/>
-<TextInput style={styles.input} placeholder="Town" value={town} onChangeText={setTown}/>
-<TextInput style={styles.input} placeholder="Location" value={location} onChangeText={setLocation}/>
-
-<TextInput
-style={styles.textarea}
-multiline
-placeholder="Describe the product"
-value={description}
-onChangeText={setDescription}
-/>
-
-
-<View style={styles.pickerBox}>
-<Picker
-selectedValue={pickerValue}
-onValueChange={(v)=>{
-setPickerValue(v)
-setCategory(v)
-}}
->
-<Picker.Item label="Choose category" value=""/>
-
-{categories.map((item)=>(
-<Picker.Item key={item._id} label={item.name} value={item._id}/>
-))}
-
-</Picker>
-</View>
-
-
-{error ? <Error message={error}/> : null}
-
-
-<TouchableOpacity
-style={styles.submitBtn}
-onPress={handleSubmit}
-disabled={isLoading}
->
-
-{isLoading ?
-<ActivityIndicator color="white"/> :
-<Text style={{color:"white"}}>Post for approval</Text>
-}
-
-</TouchableOpacity>
-
-
-<View style={{alignItems:"center",marginTop:20}}>
-
-<Text>By posting you agree to</Text>
-
-<View style={{flexDirection:"row"}}>
-
-<TouchableOpacity onPress={()=>navigation.navigate("terms")}>
-<Text style={styles.link}>Terms</Text>
-</TouchableOpacity>
-
-<Text> and </Text>
-
-<TouchableOpacity onPress={()=>navigation.navigate("privacy")}>
-<Text style={styles.link}>Privacy</Text>
-</TouchableOpacity>
-
-</View>
-
-</View>
-
-
-<View style={styles.noticeBox}>
-<Text style={{textAlign:"center"}}>
-After posting, send your Ghana card or national ID for approval. Press <Feather name="menu" size={14}/> then open your profile.
-</Text>
-</View>
-
-
-</ScrollView>
-
-</View>
-
-)
-
-}
-
-export default ShopPost;
-
-
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#f8f9fb" },
+  scrollContainer: { padding: 20, paddingBottom: 100 },
+  header: { marginBottom: 20 },
+  headerTitle: { fontSize: 26, fontWeight: "800", color: "#111" },
+  headerSub: { fontSize: 14, color: "#666", marginTop: 4 },
+  card: { backgroundColor: "#fff", borderRadius: 18, padding: 16, marginBottom: 16, elevation: 2, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10 },
+  label: { fontSize: 12, fontWeight: "bold", color: "#f5a53d", textTransform: 'uppercase', marginBottom: 12 },
+  mediaRow: { flexDirection: "row", justifyContent: "space-between" },
+  mediaBox: { width: (width - 85) / 3, height: 110, backgroundColor: "#f0f2f5", borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  mediaImage: { width: "100%", height: "100%", borderRadius: 12 },
+  plusBadge: { position: "absolute", bottom: -5, right: -5, backgroundColor: "#f5a53d", width: 24, height: 24, borderRadius: 12, justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: "white" },
+  input: { backgroundColor: "#f8f9fe", borderWidth: 1, borderColor: "#edf0f7", borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 12 },
+  row: { flexDirection: "row" },
+  textarea: { backgroundColor: "#f8f9fe", borderWidth: 1, borderColor: "#edf0f7", borderRadius: 10, padding: 14, fontSize: 16, height: 100, textAlignVertical: "top" },
+  pickerWrapper: { borderWidth: 1, borderColor: "#edf0f7", borderRadius: 10, marginBottom: 12, backgroundColor: "#f8f9fe", overflow: 'hidden' },
+  submitBtn: { backgroundColor: "#000", paddingVertical: 18, borderRadius: 12, alignItems: "center", marginTop: 10 },
+  submitText: { color: "white", fontSize: 17, fontWeight: "bold" },
+  footerLinks: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
+  footerText: { color: "#888", fontSize: 12 },
+  boldLink: { color: "#000", fontWeight: "700", textDecorationLine: "underline", fontSize: 12 },
+  noticeBox: { flexDirection: "row", marginTop: 25, backgroundColor: "#f5a53d", padding: 15, borderRadius: 12, alignItems: "center" },
+  noticeText: { flex: 1, marginLeft: 10, fontSize: 12, color: "black", fontWeight: "600" },
+  
+  // Contact Component Styles
+  inputGroup: { marginBottom: 15 },
+  fieldLabel: { fontSize: 14, color: "#333", marginBottom: 5, fontWeight: '500' },
+  phoneRow: { flexDirection: "row", alignItems: "center" },
+  countryWrap: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f2f8", borderRadius: 10, paddingHorizontal: 8, height: 50, marginRight: 8 },
+  dialText: { fontWeight: "bold", marginLeft: 2, fontSize: 14 },
+  phoneInputWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: "#f8f9fe", borderWidth: 1, borderColor: "#edf0f7", borderRadius: 10, paddingHorizontal: 12, height: 50 },
+  flexInput: { flex: 1, fontSize: 16 }
+});
 
-container:{
-flex:1,
-backgroundColor:"white",
-padding:20,
-},
-
-imageRow:{
-flexDirection:"row",
-justifyContent:"center",
-marginBottom:20
-},
-
-imagecont:{
-width:90,
-height:90,
-borderWidth:3,
-borderColor:"black",
-borderRadius:50,
-margin:10,
-justifyContent:"center",
-alignItems:"center"
-},
-
-image:{
-width:"100%",
-height:"100%",
-borderRadius:50
-},
-
-imagePicker:{
-position:"absolute",
-bottom:-5,
-right:-5,
-backgroundColor:"#f5a53d",
-padding:6,
-borderRadius:20
-},
-
-vid:{
-width:90,
-height:90,
-borderRadius:50,
-bottom:2
-},
-
-input:{
-borderWidth:1,
-borderColor:"#ddd",
-borderRadius:12,
-padding:14,
-marginBottom:12
-},
-
-textarea:{
-borderWidth:1,
-borderColor:"#ddd",
-borderRadius:12,
-padding:14,
-height:120,
-marginBottom:12,
-textAlignVertical:"top"
-},
-
-pickerBox:{
-borderWidth:1,
-borderColor:"#ddd",
-borderRadius:12,
-marginBottom:12
-},
-
-submitBtn:{
-backgroundColor:"black",
-padding:15,
-borderRadius:30,
-alignItems:"center"
-},
-
-link:{
-textDecorationLine:"underline",
-marginHorizontal:4
-},
-
-noticeBox:{
-marginTop:30,
-backgroundColor:"#f5a53d",
-padding:15,
-borderRadius:10,
-marginBottom:120
-},
-
-permissionButton:{
-backgroundColor:"blue",
-padding:10,
-marginTop:20,
-borderRadius:5
-}
-
-})
+export default ShopPost;

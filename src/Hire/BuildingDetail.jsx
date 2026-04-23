@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Dimensions, ScrollView, Platform, Linking,
   Text, TouchableOpacity, StyleSheet, TextInput,
-  ActivityIndicator, Image, Alert, KeyboardAvoidingView, SafeAreaView
+  ActivityIndicator, Image, Alert, KeyboardAvoidingView, SafeAreaView,
+  BackHandler
 } from 'react-native';
 import {
   MaterialIcons, FontAwesome, Feather, Ionicons, FontAwesome5
 } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Network from 'expo-network';
@@ -166,9 +167,20 @@ const BuildingDetail = ({ route }) => {
     finally { setIsActionLoading(false); }
   };
 
+    useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, top:30 }}>
         <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
           
           {/* Auto-Playing Carousel */}
@@ -312,7 +324,7 @@ const BuildingDetail = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', top:10 },
   scrollBody: { paddingBottom: 130 },
   mediaWrapper: { height: height * 0.4, backgroundColor: '#000' },
   carouselMedia: { width, height: '100%' },

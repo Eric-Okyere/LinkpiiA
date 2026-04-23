@@ -21,7 +21,7 @@ import { FontAwesome6, Feather, Ionicons, MaterialCommunityIcons } from "@expo/v
 import { useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
 import CountryPicker from 'react-native-country-picker-modal';
-import { useVideoPlayer, VideoView } from "expo-video"; // CHANGED: Updated imports
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Picker } from "@react-native-picker/picker";
 import baseURL from "../assets/common/BaseUrl";
 import Error from "../src/User/Error";
@@ -56,13 +56,13 @@ const ContactField = memo(({ label, value, onChange, country, onSelect, icon }) 
 ));
 
 function AgricPost({ route, navigation }) {
-  const login = useSelector((state) => state);
+  const login = useSelector((state) => state.user?.user?.userId || state.user);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Media States
   const [picture, setPicture] = useState(null);
   const [picturesec, setPicturesec] = useState(null);
-  const [videoSource, setVideoSource] = useState(null); // CHANGED: Renamed for clarity
+  const [videoSource, setVideoSource] = useState(null);
 
   // Form States
   const [name, setName] = useState("");
@@ -84,7 +84,7 @@ function AgricPost({ route, navigation }) {
   const [error, setError] = useState("");
   const [editItem, setEditItem] = useState(null);
 
-  // CHANGED: Initialize the Video Player
+  // Initialize the Video Player
   const player = useVideoPlayer(videoSource, (player) => {
     player.loop = true;
     player.muted = true;
@@ -118,27 +118,36 @@ function AgricPost({ route, navigation }) {
       setLocation(item.location);
       setPicture(item.picture);
       setPicturesec(item.picturesec);
-      setVideoSource(item.video); // Set initial video
+      setVideoSource(item.video);
     }
   }, [route.params?.item]);
 
-  const pickMedia = async (type) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Permission Denied", "Enable gallery access in settings.");
+ 
+const pickMedia = async (type) => {
+  try {
+    const mediaType =
+      type === "video"
+        ? ImagePicker.MediaTypeOptions.Videos
+        : ImagePicker.MediaTypeOptions.Images;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: type === 'video' ? ['videos'] : ['images'],
+      mediaTypes: mediaType,
       allowsEditing: true,
       quality: 0.8,
+      selectionLimit: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.length > 0) {
       const uri = result.assets[0].uri;
-      if (type === 'pic1') setPicture(uri);
-      if (type === 'pic2') setPicturesec(uri);
-      if (type === 'video') setVideoSource(uri); // CHANGED
+
+      if (type === "pic1") setPicture(uri);
+      if (type === "pic2") setPicturesec(uri);
+      if (type === "video") setVideo(uri);
     }
-  };
+  } catch (err) {
+    Alert.alert("Error", "Could not access media.");
+  }
+};
 
   const handleSubmit = async () => {
     if (!picture || !name || !price || !phone || !category) {
@@ -146,17 +155,31 @@ function AgricPost({ route, navigation }) {
       return;
     }
     setIsLoading(true);
+    setError("");
 
     try {
       const formData = new FormData();
-      formData.append("picture", { uri: picture, type: "image/jpeg", name: "p1.jpg" });
-      formData.append("picturesec", { uri: picturesec, type: "image/jpeg", name: "p2.jpg" });
+      
+      // Use dynamic filenames to avoid cache issues
+      formData.append("picture", { 
+        uri: picture, 
+        type: "image/jpeg", 
+        name: `p1_${Date.now()}.jpg` 
+      });
+
+      if (picturesec) {
+        formData.append("picturesec", { 
+          uri: picturesec, 
+          type: "image/jpeg", 
+          name: `p2_${Date.now()}.jpg` 
+        });
+      }
       
       if (videoSource) {
         formData.append("video", { 
             uri: videoSource, 
             type: "video/mp4", 
-            name: "v.mp4" 
+            name: `v_${Date.now()}.mp4` 
         });
       }
       
@@ -169,23 +192,26 @@ function AgricPost({ route, navigation }) {
       formData.append("region", region);
       formData.append("town", town);
       formData.append("location", location);
-      formData.append("userId", login.user?.userId || login.user);
+      formData.append("userId", login);
 
       const url = editItem ? `${baseURL}send/${editItem.id}` : `${baseURL}send`;
       const method = editItem ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
-        headers: { Accept: "application/json", "Content-Type": "multipart/form-data" },
+        headers: { Accept: "application/json" }, // Do not set Content-Type manually for FormData
         body: formData,
       });
 
       if (response.ok) {
         Alert.alert("Success", editItem ? "Updated!" : "Posted for approval!");
         navigation.navigate("manage");
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || "Failed to post product.");
       }
     } catch (err) {
-      setError("Something went wrong. Check connection.");
+      setError("Connection error. Please try again.");
     } finally {
       setIsLoading(false);
     }

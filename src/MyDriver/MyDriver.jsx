@@ -230,7 +230,7 @@ const MyDriver = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fb" },
+  container: { flex: 1, backgroundColor: "#f8f9fb",  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { 
     paddingHorizontal: 20, 
@@ -242,7 +242,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', 
     shadowOpacity: 0.1, 
     shadowRadius: 10,
-    zIndex: 10
+    zIndex: 10,
+    bottom:30
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 14, color: '#000', fontWeight: '500' },
-  scrollBody: { padding: 20, paddingBottom: 40 },
+  scrollBody: { padding: 20, paddingBottom: 40, bottom:20 },
   topBanner: { marginBottom: 20 },
   bannerSub: { fontSize: 14, color: "#666", alignSelf: 'center', fontWeight: '500' },
   driverCard: { backgroundColor: "white", borderRadius: 20, padding: 15, marginBottom: 18, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },

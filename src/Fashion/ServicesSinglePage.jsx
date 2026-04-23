@@ -13,7 +13,8 @@ import {
   StatusBar,
   TextInput,
   KeyboardAvoidingView,
-  Alert
+  Alert,
+  BackHandler
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -23,7 +24,7 @@ import {
   FontAwesome,
   AntDesign
 } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Network from 'expo-network';
@@ -211,6 +212,17 @@ export default function ServicesSigPage({ route }) {
     ]);
   };
 
+    useFocusEffect(
+      useCallback(() => {
+        const onBackPress = () => {
+          navigation.goBack();
+          return true;
+        };
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
+      }, [navigation])
+    );
+
   const openDial = async () => {
     setIsCalling(true);
     try {
@@ -366,7 +378,7 @@ export default function ServicesSigPage({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 15, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   backButton: { flexDirection: 'row', alignItems: 'center' },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { 
   Image, 
   Text, 
@@ -14,7 +14,8 @@ import {
   Dimensions, 
   TextInput, 
   StatusBar, 
-  Alert
+  Alert,
+  BackHandler
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -25,7 +26,7 @@ import {
   FontAwesome, 
   MaterialCommunityIcons 
 } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import baseURL from '../../assets/common/BaseUrl';
@@ -186,6 +187,17 @@ const MechanicDetailScreen = ({ route }) => {
     if (!userData.verified) return navigation.navigate("verificationpage");
      Linking.openURL(`tel:${item.phone}`);
   };
+
+      useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [navigation])
+  );
 
   return (
     <View style={styles.mainContainer}>
@@ -364,7 +376,7 @@ const MechanicDetailScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, },
+  mainContainer: { flex: 1, top:30},
   blackHeader: { backgroundColor: '#000', paddingBottom: 40, borderBottomLeftRadius: 35, borderBottomRightRadius: 35, paddingHorizontal: 20, paddingTop:10 },
   profileSection: { alignItems: 'center' },
   imageRing: { padding: 4, borderRadius: 60, borderWidth: 2, borderColor: '#FFC107' },

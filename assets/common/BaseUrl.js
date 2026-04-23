@@ -2,8 +2,8 @@ import { Platform } from "react-native";
 
 let baseURL = "";
 {Platform.OS == "android"
-? baseURL = 'http://10.32.237.90:3000/'
-: baseURL = 'http://10.32.237.90:3000/'
+? baseURL = 'https://linkpiii.onrender.com/'
+: baseURL = 'https://linkpiii.onrender.com/'
 
 }
 // 10.153.200.90

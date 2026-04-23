@@ -11,7 +11,13 @@ const Stack = createStackNavigator();
 
 function FashionStack() {
   return (
-    <Stack.Navigator initialRouteName='fashion'>
+    <Stack.Navigator
+    screenOptions={
+      {
+         header: () => null,
+      }
+    }
+    initialRouteName='fashion'>
       <Stack.Screen
        options={{
         header: () => null,
@@ -23,6 +29,7 @@ function FashionStack() {
             options={{
                 headerStatusBarHeight:20,
               title: "Contact the seller",
+               header: () => null,
               headerStyle: {
                 // backgroundColor: "#f5a53d",
                 // height: 200,
@@ -35,6 +42,7 @@ function FashionStack() {
             options={{
                 headerStatusBarHeight:20,
               title: "Contact the seller",
+               header: () => null,
               headerStyle: {
                 // backgroundColor: "#f5a53d",
                 // height: 200,

@@ -140,6 +140,11 @@ const UserAccount = (props) => {
                     <Text style={styles.menuText}>Sell Electronic Product</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity onPress={() => navigation.navigate("shoppost")} style={styles.menuItem}>
+                    <MaterialCommunityIcons name="cellphone-link" size={26} color="#f5a53d" />
+                    <Text style={styles.menuText}>Sell in Bulk</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity onPress={() => navigation.navigate("library")} style={styles.menuItem}>
                     <MaterialCommunityIcons name="sprout" size={26} color="#f5a53d" />
                     <Text style={styles.menuText}>Sell Agric Product</Text>
@@ -150,10 +155,7 @@ const UserAccount = (props) => {
                     <Text style={styles.menuText}>Sell Spareparts</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate('restpost')} style={styles.menuItem}>
-                    <Ionicons name="fast-food" size={26} color="#f5a53d" />
-                    <Text style={styles.menuText}>Post Restaurant</Text>
-                </TouchableOpacity>
+             
 
                 <TouchableOpacity onPress={() => navigation.navigate("servpost")} style={styles.menuItem}>
                     <FontAwesome6 name="user-gear" size={22} color="#f5a53d" />

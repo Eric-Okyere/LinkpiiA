@@ -116,7 +116,7 @@ const MechanicsScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       
       <View style={styles.header}>
@@ -248,12 +248,12 @@ const MechanicsScreen = () => {
               <ActivityIndicator size="large" color="#FFC107" />
           </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F9FA",  },
+  container: { flex: 1, backgroundColor: "#F8F9FA",bottom:2  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: { 
     backgroundColor: "#000", 

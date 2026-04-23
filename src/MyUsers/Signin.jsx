@@ -1,146 +1,99 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  Dimensions,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, Dimensions, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Formik } from 'formik';
-import * as yup from 'yup';
-import { signin } from '../api/auth';
+import * as yup from "yup"
+import { signin, updateNotification } from '../api/auth';
 import { useDispatch, useSelector } from 'react-redux';
-import { loggedIn } from '../Redux/actions';
+import { loggedIn } from "../Redux/actions"
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import GoogleLogo from "../../assets/Google.png"
 import * as SecureStore from 'expo-secure-store';
+import GoogleSigninBut from './GoogleSigninBut';
 
-// ✅ Google Auth
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 
-WebBrowser.maybeCompleteAuthSession();
+
+
 
 const initialValues = {
-  email: '',
-  password: '',
-};
+    email:"",
+    password:""
+}
 
 const validationSchema = yup.object({
-  email: yup.string().trim().required('Please input your email!'),
-  password: yup
-    .string()
-    .trim()
-    .min(4, 'Your password is too short!')
-    .required('Please input your password!'),
-});
+    email: yup.string().trim().required("Please input your email!"),
+    password: yup.string().trim().min(4,"Your password is too short!").required("Please input your password!"),
+})
+
 
 const Login = () => {
-  const dispatch = useDispatch();
-  const navigation = useNavigation();
-  const login = useSelector((state) => state.login);
+    const dispatch = useDispatch();
+    const navigation = useNavigation();
+    const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(""); 
+    const login = useSelector((state) => state.login)
+    const [showPassword, setShowPassword] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false); 
 
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-
-  // ✅ Google config
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: 'YOUR_EXPO_CLIENT_ID',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID',
-  });
-
-  useEffect(() => {
-    if (login) {
-      navigation.navigate('welcome');
-    }
-  }, []);
-
-  // ✅ Handle Google response
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      getUserInfo(authentication.accessToken);
-    }
-  }, [response]);
-
-  // ✅ Fetch Google user info
-  const getUserInfo = async (token) => {
-    try {
-      setGoogleLoading(true);
-
-      const res = await fetch(
-        'https://www.googleapis.com/userinfo/v2/me',
-        {
-          headers: { Authorization: `Bearer ${token}` },
+    useEffect(() => {
+        const checkLogin = () => {
+            if (login) {
+                navigation.navigate('welcome')
+            } 
         }
-      );
+        checkLogin()
+    }, [])
 
-      const user = await res.json();
+    // useEffect(() => {
+    //     if (userState.userInfo) {
+    //         navigation.navigate("welcome");
+    //     }
+    // }, [userState.userInfo]);
 
-      // Send to backend
-      const backendRes = await signin({
-        email: user.email,
-        googleId: user.id,
-        name: user.name,
-      });
+    const handleLogin = async (values) => {
+        try {
+            setLoading(true);
+            const res = await signin(values);
+            if (!res.success) {
+                setErrorMessage(res.error); // Set error message state
+            } else {
+                navigation.navigate("welcome");
+                dispatch(loggedIn(res.user.id));
+            }
+        } catch (error) {
+            console.error('Login Error:', error);
+            setErrorMessage("An error occurred during login. Please try again."); // Set a generic error message
+        } finally {
+            setLoading(false);
+        }
+    };
+    
 
-      if (backendRes.success) {
-        await handleGoogleLoginSuccess(
-          backendRes.user,
-          backendRes.token
-        );
-      } else {
-        setErrorMessage('Google login failed');
-        setGoogleLoading(false);
-      }
-    } catch (error) {
-      console.error(error);
-      setGoogleLoading(false);
-    }
-  };
 
-  // ✅ Save login
-  const handleGoogleLoginSuccess = async (user, token) => {
-    try {
-      dispatch(loggedIn(user.id));
-      await SecureStore.setItemAsync('authToken', token);
+    const handleGoogleLoginSuccess = async (user, token) => {
+        setGoogleLoading(true); // ⬅️ Start loading after Google login success
 
-      setGoogleLoading(false);
-      navigation.navigate('welcome');
-    } catch (error) {
-      console.error(error);
-      setGoogleLoading(false);
-    }
-  };
+        dispatch(loggedIn(user.id));
 
-  // ✅ Email login
-  const handleLogin = async (values) => {
-    try {
-      setLoading(true);
-      const res = await signin(values);
+        try {
+            await SecureStore.setItemAsync('authToken', token);
+            console.log("Token saved securely");
 
-      if (!res.success) {
-        setErrorMessage(res.error);
-      } else {
-        dispatch(loggedIn(res.user.id));
-        navigation.navigate('welcome');
-      }
-    } catch (error) {
-      console.error(error);
-      setErrorMessage('Login error');
-    } finally {
-      setLoading(false);
-    }
-  };
+            // Simulate waiting for the next page (optional)
+            setTimeout(() => {
+                setGoogleLoading(false);
+                navigation.navigate("welcome");
+            }, 2000); // Adjust timing as needed
+        } catch (error) {
+            console.error("Error saving token:", error);
+            setGoogleLoading(false);
+        }
+    };
 
-  return (
-    <View style={styles.container}>
-      <Formik
+
+    return (
+        <View style={styles.container}>
+       <Formik
         initialValues={initialValues}
         validationSchema={validationSchema}
         onSubmit={handleLogin}
@@ -160,8 +113,8 @@ const Login = () => {
               <Text style={styles.errorText}>
                 {touched.email && errors.email}
               </Text>
-
               <TextInput
+                autoCapitalize="none"
                 placeholder="Email"
                 style={styles.input}
                 onChangeText={handleChange('email')}
@@ -172,13 +125,13 @@ const Login = () => {
               <Text style={styles.errorText}>
                 {touched.password && errors.password}
               </Text>
-
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="Password"
                   secureTextEntry={!showPassword}
                   onChangeText={handleChange('password')}
+                  onBlur={handleBlur('password')}
                   value={values.password}
                 />
                 <TouchableOpacity
@@ -196,58 +149,142 @@ const Login = () => {
                 <Text style={styles.errorText}>{errorMessage}</Text>
               ) : null}
 
-              {/* EMAIL LOGIN */}
               <TouchableOpacity
                 style={styles.loginButton}
                 onPress={handleSubmit}
+                disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#000" />
+                  <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.loginButtonText}>Login</Text>
                 )}
               </TouchableOpacity>
 
-              {/* GOOGLE LOGIN */}
               <TouchableOpacity
-                style={[styles.loginButton, { marginTop: 15 }]}
-                onPress={() => promptAsync({ useProxy: true })}
-                disabled={!request || googleLoading}
+                onPress={() => navigation.navigate('forgotten')}
               >
-                {googleLoading ? (
-                  <ActivityIndicator color="#000" />
-                ) : (
-                  <>
-                    <Image
-                      source={{
-                        uri: 'https://developers.google.com/identity/images/g-logo.png',
-                      }}
-                      style={styles.googleLogo}
-                    />
-                    <Text style={styles.loginButtonText}>
-                      Sign in with Google
-                    </Text>
-                  </>
-                )}
+                <Text style={styles.forgotText}>Forgotten Password?</Text>
               </TouchableOpacity>
+
+              <View style={styles.signupRow}>
+                <Text style={styles.signupPrompt}>
+                  Don't have an account?
+                </Text>
+                <TouchableOpacity
+                  style={styles.signupButton}
+                  onPress={() => navigation.navigate('signup')}
+                >
+                  <Text>Signup</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </>
         )}
       </Formik>
-    </View>
-  );
+
+
+
+            {/* <View style={{flexDirection:"row", alignItems:"center", alignSelf:"center", top:8}}>
+                      <Image source={GoogleLogo} style={styles.googleLogo} />
+                      <GoogleSigninBut onLoginSuccess={handleGoogleLoginSuccess} />
+                      </View>
+
+            {googleLoading && <ActivityIndicator size="large" color="#f5a53d" />} */}
+
+
+        </View>
+    );
 };
 
+const {width} = Dimensions.get("window");
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', justifyContent: 'center', padding: 20 },
-  title: { color: '#f5a53d', fontSize: 22, textAlign: 'center', marginBottom: 20 },
-  input: { backgroundColor: '#e1e6ed', borderRadius: 8, padding: 12, marginBottom: 10 },
-  passwordContainer: { flexDirection: 'row', backgroundColor: '#e1e6ed', borderRadius: 8, paddingHorizontal: 10, alignItems: 'center' },
-  passwordInput: { flex: 1 },
-  loginButton: { backgroundColor: '#f5a53d', padding: 12, borderRadius: 20, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  loginButtonText: { fontWeight: '600' },
-  googleLogo: { width: 20, height: 20, marginRight: 10 },
-  errorText: { color: 'red', fontSize: 12 },
-});
+    container: {
+        flex: 1,
+        backgroundColor: '#000',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+      },
+      title: {
+        color: '#f5a53d',
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        alignSelf: 'center',
+      },
+      form: {
+        width: '100%',
+      },
+      input: {
+        backgroundColor: '#e1e6ed',
+        borderRadius: 8,
+        fontSize: 16,
+        paddingHorizontal: 15,
+        height: 44,
+        marginBottom: 12,
+      },
+      passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#e1e6ed',
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        height: 44,
+        marginBottom: 12,
+      },
+      passwordInput: {
+        flex: 1,
+        fontSize: 16,
+      },
+      loginButton: {
+        backgroundColor: '#f5a53d',
+        borderRadius: 20,
+        paddingVertical: 10,
+        alignItems: 'center',
+        marginTop: 10,
+      },
+      loginButtonText: {
+        fontSize: 16,
+        color: '#000',
+        fontWeight: '600',
+      },
+      forgotText: {
+        color: '#eae6e6',
+        alignSelf: 'flex-end',
+        marginTop: 8,
+      },
+      signupRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 20,
+      },
+      signupPrompt: {
+        color: '#f5a53d',
+        fontSize: 16,
+      },
+      signupButton: {
+        backgroundColor: '#f5a53d',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+      },
+      errorText: {
+        color: 'red',
+        fontSize: 14,
+        marginBottom: 5,
+      },
+      googleLoginRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 25,
+      },
+      googleLogo: {
+        width: 24,
+        height: 24,
+        marginRight: 8,
+      },
+    })
 
 export default Login;

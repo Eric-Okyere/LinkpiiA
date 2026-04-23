@@ -8,12 +8,11 @@ import {
   TouchableOpacity,
   View,
   TextInput,
-  SafeAreaView,
   StatusBar,
   ScrollView
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from "axios";
 import { 
   AntDesign, 
@@ -128,7 +127,7 @@ const UserPost = (props) => {
 
       <View style={styles.body}>
         <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>Agric Inventory</Text>
+          <Text style={styles.sectionTitle}>General Inventory</Text>
           <View style={styles.badge}><Text style={styles.badgeText}>{productFilter.length}</Text></View>
         </View>
 
@@ -175,6 +174,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
     elevation: 8,
+    bottom:30
   },
   headerRow: {
     flexDirection: 'row',

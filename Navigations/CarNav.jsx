@@ -27,6 +27,9 @@ export default function CarNav() {
 
 <Stack.Navigator
      initialRouteName="mycont"
+      screenOptions={{
+        header: () => null,
+      }}
      >
       
       <Stack.Screen

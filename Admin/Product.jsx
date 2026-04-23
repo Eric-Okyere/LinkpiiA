@@ -30,7 +30,6 @@ const Product = (props) => {
   const [focus, setFocus] = useState(false);
 
   const navigation = useNavigation();
-  const myProducts = useSelector((state) => state);
 
   useFocusEffect(
     useCallback(() => {

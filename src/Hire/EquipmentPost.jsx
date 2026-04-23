@@ -85,7 +85,6 @@ function Equipmentpost({ route }) {
   const [editItem, setEditItem] = useState(null);
 
   useEffect(() => {
-    // Pulse animation for the ID verification notice
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.03, duration: 900, useNativeDriver: true }),
@@ -93,7 +92,6 @@ function Equipmentpost({ route }) {
       ])
     ).start();
 
-    // Fetch categories
     fetch(`${baseURL}equipmentcat`)
       .then(res => res.json())
       .then(setCategories)
@@ -114,22 +112,31 @@ function Equipmentpost({ route }) {
     }
   }, [route.params?.item]);
 
-  const pickMedia = async (type) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Permission Needed", "Please allow gallery access to upload photos.");
+const pickMedia = async (type) => {
+  try {
+    const mediaType =
+      type === "video"
+        ? ImagePicker.MediaTypeOptions.Videos
+        : ImagePicker.MediaTypeOptions.Images;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
+      mediaTypes: mediaType,
+      allowsEditing: true,
       quality: 0.8,
+      selectionLimit: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.length > 0) {
       const uri = result.assets[0].uri;
-      if (type === 'pic1') setPicture(uri);
-      if (type === 'pic2') setPicturesec(uri);
+
+      if (type === "pic1") setPicture(uri);
+      if (type === "pic2") setPicturesec(uri);
+      if (type === "video") setVideo(uri);
     }
-  };
+  } catch (err) {
+    Alert.alert("Error", "Could not access media.");
+  }
+};
 
   const handleSubmit = async () => {
     if (!picture || !name || !phone || !category || !price) {
@@ -159,7 +166,7 @@ function Equipmentpost({ route }) {
 
       const response = await fetch(url, {
         method,
-        headers: { Accept: "application/json", "Content-Type": "multipart/form-data" },
+        headers: { Accept: "application/json" },
         body: formData,
       });
 
@@ -168,7 +175,7 @@ function Equipmentpost({ route }) {
         navigation.navigate("equipmana");
       }
     } catch (err) {
-      setError("Network error. Please check your connection.");
+      setError("Network error. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -206,7 +213,7 @@ function Equipmentpost({ route }) {
             {/* SPECS CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Equipment Details</Text>
-              <TextInput style={styles.input} placeholder="Product Name (e.g. Concrete Mixer) *" value={name} onChangeText={setName} />
+              <TextInput style={styles.input} placeholder="Product Name *" value={name} onChangeText={setName} />
               <TextInput style={styles.input} placeholder="Price (₵) *" keyboardType="numeric" value={price} onChangeText={setPrice} />
               
               <View style={styles.pickerBox}>
@@ -216,20 +223,20 @@ function Equipmentpost({ route }) {
                 </Picker>
               </View>
 
-              <TextInput style={styles.textArea} multiline placeholder="Describe the condition, usage, and key features... *" value={description} onChangeText={setDescription} />
+              <TextInput style={styles.textArea} multiline placeholder="Description, usage, and features... *" value={description} onChangeText={setDescription} />
             </View>
 
             {/* LOCATION CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Location & Contact</Text>
               <ContactField label="Phone Contact *" icon="call-outline" value={phone} onChange={setPhone} country={phoneCountry} onSelect={setPhoneCountry} />
-              <ContactField label="WhatsApp Booking" icon="logo-whatsapp" value={whatsapp} onChange={setWhatsapp} country={whatsappCountry} onSelect={setWhatsappCountry} />
+              <ContactField label="WhatsApp" icon="logo-whatsapp" value={whatsapp} onChange={setWhatsapp} country={whatsappCountry} onSelect={setWhatsappCountry} />
 
               <View style={styles.row}>
                 <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Region" value={region} onChangeText={setRegion} />
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Town" value={town} onChangeText={setTown} />
               </View>
-              <TextInput style={styles.input} placeholder="Exact Location / Landmark" value={location} onChangeText={setLocation} />
+              <TextInput style={styles.input} placeholder="Landmark" value={location} onChangeText={setLocation} />
             </View>
 
             {error ? <Error message={error} /> : null}
@@ -238,16 +245,9 @@ function Equipmentpost({ route }) {
               {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>Post for Approval</Text>}
             </TouchableOpacity>
 
-            <View style={styles.termsRow}>
-              <Text style={styles.termsText}>By posting, you agree to our </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("terms")}><Text style={styles.linkText}>Terms</Text></TouchableOpacity>
-              <Text style={styles.termsText}> & </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("privacy")}><Text style={styles.linkText}>Privacy</Text></TouchableOpacity>
-            </View>
-
             <Animated.View style={[styles.notice, { transform: [{ scale: pulseAnim }] }]}>
               <MaterialCommunityIcons name="shield-check-outline" size={22} color="#111" />
-              <Text style={styles.noticeText}>Verification: Remember to upload your ID card in your profile settings to ensure your listing is approved.</Text>
+              <Text style={styles.noticeText}>Verification: Upload your ID card in profile settings for listing approval.</Text>
             </Animated.View>
 
           </ScrollView>
@@ -284,9 +284,6 @@ const styles = StyleSheet.create({
   flexInput: { flex: 1, fontSize: 16 },
   submitBtn: { backgroundColor: "#000", padding: 18, borderRadius: 16, alignItems: "center", marginTop: 10 },
   submitText: { color: "white", fontWeight: "bold", fontSize: 17 },
-  termsRow: { flexDirection: 'row', alignSelf: 'center', marginTop: 15 },
-  termsText: { fontSize: 12, color: '#666' },
-  linkText: { fontSize: 12, color: '#000', textDecorationLine: 'underline', fontWeight: 'bold' },
   notice: { flexDirection: "row", backgroundColor: "#f5a53d", padding: 16, borderRadius: 18, marginTop: 30, alignItems: "center" },
   noticeText: { flex: 1, marginLeft: 10, fontSize: 12, fontWeight: "bold", color: "#111" }
 });

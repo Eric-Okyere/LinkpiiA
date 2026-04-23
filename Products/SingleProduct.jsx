@@ -359,6 +359,16 @@ const saveEditComment = async (commentId) => {
   };
 
 
+    useFocusEffect(
+      useCallback(() => {
+        const onBackPress = () => {
+          navigation.goBack();
+          return true;
+        };
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
+      }, [navigation])
+    );
 
 
 
@@ -568,7 +578,7 @@ const saveEditComment = async (commentId) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', top:38 },
   mainScroll: { paddingHorizontal: 20 },
   carouselItem: { width, justifyContent: "center", alignItems: "center" },
   mediaItem: { width: width - 40, height: height / 3, borderRadius: 16, backgroundColor: '#f0f0f0' },

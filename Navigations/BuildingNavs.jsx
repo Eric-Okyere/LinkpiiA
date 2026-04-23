@@ -12,6 +12,9 @@ export default function BuildingNavs() {
 
 <Stack.Navigator
      initialRouteName="Back"
+     screenOptions={{
+        header: () => null
+     }}
      >
       
       <Stack.Screen

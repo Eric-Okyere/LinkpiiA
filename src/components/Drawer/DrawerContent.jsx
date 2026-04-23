@@ -6,7 +6,6 @@ import UserPost from "../../../Admin/UserPost";
 import Post from '../../Fashion/Post';
 import Sparepost from '../../SpareParts/Sparepost';
 import ServicesPost from '../../Fashion/ServicesPost';
-import PostRest from '../../Restaurant/PostRest';
 import BuildingPost from '../../Hire/BuildingPost';
 import Rentcarpost from '../../Hire/Rentcarpost';
 import Equipmentpost from '../../Hire/EquipmentPost';
@@ -23,14 +22,13 @@ import ShopManagement from '../../Fashion/Shopmanagement';
 import BuildingMana from '../../Hire/BuildingMana';
 import RentcarMana from '../../Hire/RentCarMana';
 import EquipmentMana from '../../Hire/EquipmentMana';
-import ManageRest from '../../Restaurant/ManageRest';
 import AdminDetail from '../../../Products/AdminDetailPage';
 import AdminSigSpare from '../../SpareParts/AdminSig';
 import AdminShop from '../../Fashion/AdminShop';
 import BuildingSigView from '../../Hire/BuildingSigView';
 import RentCarAdminSig from '../../Hire/RentCarAdminSig';
 import EquipAdminSig from '../../Hire/EquipAdminSig';
-import AdminRest from '../../Restaurant/AdminRest';
+import ShopPost from '../../Fashion/ShopPost';
 
 const Drawer = createDrawerNavigator();
 
@@ -71,6 +69,12 @@ const DrawerContent = () => {
       />
 
       <Drawer.Screen
+        options={{ title: "Products in Bulk" }}
+        name="shoppost" 
+        component={ShopPost} 
+      />
+
+      <Drawer.Screen
         options={{ title: "Sell Spare Parts" }}
         name="partspost" 
         component={Sparepost} 
@@ -82,11 +86,7 @@ const DrawerContent = () => {
         component={ServicesPost} 
       />
 
-      <Drawer.Screen
-        options={{ title: "Post Restaurant, Food joint......" }}
-        name="restpost" 
-        component={PostRest} 
-      />
+     
 
       <Drawer.Screen
         options={{ title: "Post Building, Hotel, Guest House....." }}
@@ -193,11 +193,7 @@ const DrawerContent = () => {
         component={EquipmentMana} 
       />
 
-      <Drawer.Screen
-        options={{ title: "Manage Equipments for Rent" }}
-        name="manarest" 
-        component={ManageRest} 
-      />
+     
 
       <Drawer.Screen
         options={{ title: "Manage Parts" }}
@@ -230,11 +226,7 @@ const DrawerContent = () => {
         component={EquipAdminSig} 
       />
 
-      <Drawer.Screen
-        options={{ title: "Manage Restaurant" }}
-        name="restsig" 
-        component={AdminRest} 
-      />
+     
 
     </Drawer.Navigator>
 

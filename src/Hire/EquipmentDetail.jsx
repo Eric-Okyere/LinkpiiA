@@ -3,12 +3,13 @@ import {
   View, Dimensions, ScrollView, Platform, Linking,
   Text, TouchableOpacity, StyleSheet, TextInput,
   ActivityIndicator, Modal as RNModal, SafeAreaView,
-  Image, KeyboardAvoidingView, Alert
+  Image, KeyboardAvoidingView, Alert,
+  BackHandler
 } from 'react-native';
 import {
   MaterialIcons, Entypo, Feather, FontAwesome, Ionicons
 } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import * as Network from 'expo-network';
 import baseURL from '../../assets/common/BaseUrl';
@@ -138,6 +139,17 @@ export default function EquipmentDetail({ route }) {
     }
     setIsActionLoading(false);
   };
+
+    useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.goBack();
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [navigation])
+  );
 
   if (loading) return <View style={styles.center}><ActivityIndicator color="#f5a53d" size="large" /></View>;
 
@@ -289,7 +301,7 @@ export default function EquipmentDetail({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
+  container: { flex: 1, backgroundColor: '#FFF', top:40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   carouselWrapper: { width, height: height * 0.38, backgroundColor: '#000' },
   carouselImage: { width, height: '100%', resizeMode: 'cover' },

@@ -24,7 +24,7 @@ const ListProducts = (props) => {
 
   // Navigate to single view
   const handleNavigate = () => {
-    props.navigation.navigate('agricadmin', { ...props });
+    props.navigation.navigate('fashionsig', { ...props });
   };
 
   // Navigate to edit view

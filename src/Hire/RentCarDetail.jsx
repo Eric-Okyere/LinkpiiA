@@ -23,7 +23,8 @@ import {
   Modal as RNModal,
   Image,
   StatusBar,
-  Alert
+  Alert,
+  BackHandler
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
@@ -124,6 +125,9 @@ function RentCarDetail({ route }) {
   const [isCalling, setIsCalling] = useState(false);
   const [isWhatsApping, setIsWhatsApping] = useState(false);
   const [userData, setUserData] = useState({ name: '', email: '', phone: '' });
+
+
+   const navigation = useNavigation();
 
   useEffect(() => { 
     fetchData(); 
@@ -241,12 +245,24 @@ function RentCarDetail({ route }) {
     } catch (e) { console.error(e); }
   };
 
+    useFocusEffect(
+      useCallback(() => {
+        const onBackPress = () => {
+          navigation.goBack();
+          return true;
+        };
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
+      }, [navigation])
+    );
+
   return (
     <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 50 }}>
+       <CustomMediaCarousel data={[item.picture, item.picturesec]} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150, top:10 }}>
         
-        <CustomMediaCarousel data={[item.picture, item.picturesec]} />
+       
 
         <View style={styles.contentWrapper}>
           <View style={styles.titleSection}>
@@ -367,7 +383,7 @@ function RentCarDetail({ route }) {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#fff' },
+  mainContainer: { flex: 1, backgroundColor: '#fff', top:50 },
   carouselItem: { width, height: height / 2.8, backgroundColor: '#000' },
   mediaContent: { width: '100%', height: '100%' },
   paginationRow: { position: 'absolute', bottom: 15, flexDirection: 'row', width: '100%', justifyContent: 'center' },

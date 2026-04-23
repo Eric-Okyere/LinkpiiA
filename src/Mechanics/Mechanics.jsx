@@ -20,9 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   FontAwesome6, 
   Ionicons, 
-  MaterialCommunityIcons, 
-  Entypo, 
-  Feather 
+  MaterialCommunityIcons 
 } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
@@ -99,7 +97,6 @@ function MechanicForm({ route }) {
       ])
     ).start();
 
-    // Fetch Mechanic Categories
     fetch(`${baseURL}newmech`)
       .then(res => res.json())
       .then(setCategories)
@@ -123,22 +120,45 @@ function MechanicForm({ route }) {
     }
   }, [route.params?.item]);
 
-  const pickMedia = async (type) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Denied", "Gallery access is required.");
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      if (type === 'pic1') setPicture(uri);
-      if (type === 'pic2') setPicturesec(uri);
-    }
-  };
+  // RESOLUTION: Removed manual permission request to comply with Google Play Policy.
+ const pickMedia = async (type) => {
+   try {
+     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+ 
+     if (permission.status !== "granted") {
+       Alert.alert(
+         "Permission denied",
+         "Please allow access to your media library to continue."
+       );
+       return;
+     }
+ 
+     let mediaType;
+ 
+     if (type === "video") {
+       mediaType = ImagePicker.MediaTypeOptions.Videos;
+     } else {
+       mediaType = ImagePicker.MediaTypeOptions.Images;
+     }
+ 
+     const result = await ImagePicker.launchImageLibraryAsync({
+       mediaTypes: mediaType,
+       allowsEditing: true,
+       quality: 0.8,
+       selectionLimit: 1,
+     });
+ 
+     if (!result.canceled && result.assets?.length > 0) {
+       const uri = result.assets[0].uri;
+ 
+       if (type === "pic1") setPicture(uri);
+       if (type === "pic2") setPicturesec(uri);
+       if (type === "video") setVideo(uri);
+     }
+   } catch (err) {
+     Alert.alert("Error", "Could not access media library.");
+   }
+ };
 
   const handleSubmit = async () => {
     if (!picture || !name || !phone || !category || !services) {
@@ -169,7 +189,7 @@ function MechanicForm({ route }) {
 
       const response = await fetch(url, {
         method,
-        headers: { Accept: "application/json", "Content-Type": "multipart/form-data" },
+        headers: { Accept: "application/json" },
         body: formData,
       });
 
@@ -195,7 +215,6 @@ function MechanicForm({ route }) {
               <Text style={styles.subTitle}>Register your workshop and services</Text>
             </View>
 
-            {/* SHOP & PERSONAL PHOTOS */}
             <View style={styles.mediaContainer}>
               <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('pic1')}>
                 {picture ? (
@@ -222,10 +241,9 @@ function MechanicForm({ route }) {
               </TouchableOpacity>
             </View>
 
-            {/* SHOP DETAILS CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Workshop Details</Text>
-              <TextInput style={styles.input} placeholder="Workshop/Shop Name *" value={name} onChangeText={setName} />
+              <TextInput style={styles.input} placeholder="Workshop Name *" value={name} onChangeText={setName} />
               <TextInput style={styles.input} placeholder="Mechanic Nickname" value={nickname} onChangeText={setnickName} />
               
               <View style={styles.pickerBox}>
@@ -238,28 +256,26 @@ function MechanicForm({ route }) {
               <TextInput 
                 style={styles.textArea} 
                 multiline 
-                placeholder="List your services (e.g. Engine repair, AC, Electrical...) *" 
+                placeholder="List your services (Engine, AC, Electrical...) *" 
                 value={services} 
                 onChangeText={setServices} 
               />
             </View>
 
-            {/* CONTACT CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Contact & ID</Text>
               <ContactField label="Phone Number *" icon="call-outline" value={phone} onChange={setPhone} country={phoneCountry} onSelect={setPhoneCountry} />
-              <ContactField label="WhatsApp (For Bookings)" icon="logo-whatsapp" value={whatsapp} onChange={setWhatsapp} country={whatsappCountry} onSelect={setWhatsappCountry} />
+              <ContactField label="WhatsApp" icon="logo-whatsapp" value={whatsapp} onChange={setWhatsapp} country={whatsappCountry} onSelect={setWhatsappCountry} />
               <TextInput style={styles.input} placeholder="Ghana Card Number *" value={card} onChangeText={setCard} />
             </View>
 
-            {/* LOCATION CARD */}
             <View style={styles.card}>
               <Text style={styles.cardHeader}>Service Area</Text>
               <View style={styles.row}>
                 <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Region" value={region} onChangeText={setRegion} />
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Town" value={town} onChangeText={setTown} />
               </View>
-              <TextInput style={styles.input} placeholder="Detailed Address / Landmark" value={location} onChangeText={setLocation} />
+              <TextInput style={styles.input} placeholder="Landmark" value={location} onChangeText={setLocation} />
             </View>
 
             {error ? <Error message={error} /> : null}
@@ -268,16 +284,9 @@ function MechanicForm({ route }) {
               {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>Submit for Approval</Text>}
             </TouchableOpacity>
 
-            <View style={styles.termsRow}>
-              <Text style={styles.termsText}>By registering, you agree to our </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("terms")}><Text style={styles.linkText}>Terms</Text></TouchableOpacity>
-              <Text style={styles.termsText}> & </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("privacy")}><Text style={styles.linkText}>Privacy</Text></TouchableOpacity>
-            </View>
-
             <Animated.View style={[styles.notice, { transform: [{ scale: pulseAnim }] }]}>
               <MaterialCommunityIcons name="shield-check" size={22} color="#111" />
-              <Text style={styles.noticeText}>Verification Required: To build trust with customers, ensure your Ghana Card is verified in your profile menu.</Text>
+              <Text style={styles.noticeText}>Verification: Ensure your Ghana Card is verified in profile for approval.</Text>
             </Animated.View>
 
           </ScrollView>
@@ -314,9 +323,6 @@ const styles = StyleSheet.create({
   flexInput: { flex: 1, fontSize: 16 },
   submitBtn: { backgroundColor: "#000", padding: 18, borderRadius: 16, alignItems: "center", marginTop: 10 },
   submitText: { color: "white", fontWeight: "bold", fontSize: 17 },
-  termsRow: { flexDirection: 'row', alignSelf: 'center', marginTop: 15 },
-  termsText: { fontSize: 12, color: '#666' },
-  linkText: { fontSize: 12, color: '#000', textDecorationLine: 'underline', fontWeight: 'bold' },
   notice: { flexDirection: "row", backgroundColor: "#f5a53d", padding: 16, borderRadius: 18, marginTop: 30, alignItems: "center" },
   noticeText: { flex: 1, marginLeft: 10, fontSize: 12, fontWeight: "bold", color: "#111" }
 });
