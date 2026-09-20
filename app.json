@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Linkpii",
+    "slug": "palm-farm",
+    "version": "3.9.5",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "linkpii",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fd1463cf-a84f-4b49-be89-16462cf4113a",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
+    
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.linkpii.ios",
+      "buildNumber": "64"
+      
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+   
+  
+      "permissions": [],
+       
+     
+      "versionCode": 94,
+      "package": "com.ericok.palm",
+      "runtimeVersion": "1.0.0"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker"
+      
+      ],
+      ["expo-build-properties", { "android": { "newArchEnabled": false } }],
+      
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        
+        "projectId": "fd1463cf-a84f-4b49-be89-16462cf4113a"
+      }
+    },
+    "owner": "ericok",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
