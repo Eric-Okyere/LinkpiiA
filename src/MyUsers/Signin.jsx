@@ -7,7 +7,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { loggedIn } from "../Redux/actions"
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import GoogleLogo from "../../assets/Google.png"
 import * as SecureStore from 'expo-secure-store';
 import GoogleSigninBut from './GoogleSigninBut';
 
@@ -185,12 +184,23 @@ const Login = () => {
 
 
 
-            {/* <View style={{flexDirection:"row", alignItems:"center", alignSelf:"center", top:8}}>
-                      <Image source={GoogleLogo} style={styles.googleLogo} />
-                      <GoogleSigninBut onLoginSuccess={handleGoogleLoginSuccess} />
-                      </View>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-            {googleLoading && <ActivityIndicator size="large" color="#f5a53d" />} */}
+            <View style={styles.googleLoginRow}>
+              <GoogleSigninBut onLoginSuccess={handleGoogleLoginSuccess} />
+            </View>
+
+            {googleLoading && (
+              <ActivityIndicator
+                size="large"
+                color="#f5a53d"
+                style={{ marginTop: 12 }}
+              />
+            )}
 
 
         </View>
@@ -278,12 +288,30 @@ const styles = StyleSheet.create({
       googleLoginRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 25,
+        justifyContent: 'center',
+        marginTop: 4,
       },
       googleLogo: {
         width: 24,
         height: 24,
         marginRight: 8,
+      },
+      dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 22,
+        marginBottom: 14,
+      },
+      dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#444',
+      },
+      dividerText: {
+        color: '#888',
+        fontSize: 12,
+        marginHorizontal: 10,
+        fontWeight: '600',
       },
     })
 

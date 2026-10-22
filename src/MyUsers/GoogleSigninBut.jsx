@@ -1,59 +1,152 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import * as SecureStore from 'expo-secure-store';
+import React, { useState } from 'react';
+import {
+  TouchableOpacity,
+  Text,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import baseURL from '../../assets/common/BaseUrl';
+import GoogleLogo from '../../assets/Google.png';
 
-WebBrowser.maybeCompleteAuthSession();
-
+/**
+ * "Sign in with Google" button for the login screen.
+ *
+ * Uses the native @react-native-google-signin/google-signin module (talks
+ * to Google Play Services directly), NOT expo-auth-session's Google
+ * provider - that was the earlier approach in this file and in the now-
+ * removed GoogleLoginButton.jsx, abandoned because its Android flow is
+ * unreliable about actually returning an idToken. The native module needs
+ * a custom dev client / native build to run - it will not work inside
+ * Expo Go.
+ *
+ * On success, it posts the Google idToken to the backend's
+ * `auth/google-signin` endpoint (controllers/user.js -> googleSignIn),
+ * which verifies the token with Google, creates the account on first
+ * sign-in or logs the existing one in, and returns our own app user +
+ * JWT - exactly like the email/password flow - then calls
+ * `onLoginSuccess(user, token)` the same way Signin.jsx's
+ * handleGoogleLoginSuccess already expects.
+ */
 const GoogleSigninBut = ({ onLoginSuccess }) => {
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-   iosClientId: '450195054535-j1v4j3vcg8rtl0oek01n1g7nkto7c7vc.apps.googleusercontent.com',
-   webClientId:"450195054535-tbf14l0n9dhvjon1ili187agq5bcf89k.apps.googleusercontent.com",
-   androidClientId:'450195054535-f0ufdcir9s1u51if92nadsi76cfv982l.apps.googleusercontent.com'
-  });
+  const handlePress = async () => {
+    if (loading) return;
+    setLoading(true);
 
-  useEffect(() => {
-    if (response?.type === 'success' && response.authentication) {
-      handleGoogleLogin(response.authentication.idToken); 
-    }
-  }, [response]);
-
-  const handleGoogleLogin = async (token) => {
     try {
-      if (!token) {
-        console.error('No token received from Google.');
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+
+      if (!isSuccessResponse(response)) {
+        // User closed the account picker - not an error, just stop.
         return;
       }
 
-      const response = await fetch(`${baseURL}auth/google-signin`, {
+      const idToken = response.data?.idToken;
+      if (!idToken) {
+        Alert.alert(
+          'Sign-In Error',
+          'Google did not return a sign-in token. Please try again.'
+        );
+        return;
+      }
+
+      const res = await fetch(`${baseURL}auth/google-signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ token: idToken, agreeToTerms: true }),
       });
-
-      const data = await response.json();
-      console.log('Backend Response:', data);
+      const data = await res.json();
 
       if (data.success) {
-        console.log('User Info:', data.user.id);
-        setUser(data.user.id);
-        await SecureStore.setItemAsync('userToken', data.token);
-        onLoginSuccess(data.user.id, data.token);
+        onLoginSuccess(data.user, data.token);
       } else {
-        console.error('Login failed:', data.message);
-        Alert.alert('Login Failed', data.message);
+        Alert.alert(
+          'Login Failed',
+          data.message || 'Google sign-in failed. Please try again.'
+        );
       }
     } catch (error) {
-      console.error('Google Sign-In failed:', error);
-      Alert.alert('Login Error', 'Something went wrong. Please try again.');
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            break; // user backed out of the picker
+          case statusCodes.IN_PROGRESS:
+            break; // a sign-in is already in flight, ignore this tap
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            Alert.alert(
+              'Google Play Services Required',
+              'Please update Google Play Services and try again.'
+            );
+            break;
+          default:
+            console.error('Google Sign-In error:', error);
+            Alert.alert(
+              'Sign-In Error',
+              'Something went wrong signing in with Google.'
+            );
+        }
+      } else {
+        console.error('Google Sign-In error:', error);
+        Alert.alert(
+          'Sign-In Error',
+          'Something went wrong signing in with Google.'
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  return <Button title={"Sign in with Google"} onPress={() => promptAsync()} disabled={!request} />;
+  return (
+    <TouchableOpacity
+      style={styles.button}
+      onPress={handlePress}
+      disabled={loading}
+      activeOpacity={0.85}
+    >
+      {loading ? (
+        <ActivityIndicator color="#1a1a1a" />
+      ) : (
+        <>
+          <Image source={GoogleLogo} style={styles.logo} />
+          <Text style={styles.text}>Sign in with Google</Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
 };
+
+const styles = StyleSheet.create({
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    minWidth: 230,
+  },
+  logo: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  text: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+});
 
 export default GoogleSigninBut;

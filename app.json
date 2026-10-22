@@ -60,7 +60,13 @@
       ],
       "expo-font",
       "expo-video",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.450195054535-j1v4j3vcg8rtl0oek01n1g7nkto7c7vc"
+        }
+      ]
     ],
     "extra": {
       "eas": {
