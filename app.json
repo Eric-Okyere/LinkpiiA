@@ -17,23 +17,17 @@
       "enabled": true,
       "fallbackToCacheTimeout": 0
     },
-    
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.linkpii.ios",
       "buildNumber": "64"
-      
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-   
-  
       "permissions": [],
-       
-     
       "versionCode": 94,
       "package": "com.ericok.palm",
       "runtimeVersion": "1.0.0"
@@ -45,10 +39,15 @@
       "expo-secure-store",
       [
         "expo-image-picker"
-      
       ],
-      ["expo-build-properties", { "android": { "newArchEnabled": false } }],
-      
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false
+          }
+        }
+      ],
       [
         "expo-build-properties",
         {
@@ -58,11 +57,13 @@
             "buildToolsVersion": "36.0.0"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-video",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
-        
         "projectId": "fd1463cf-a84f-4b49-be89-16462cf4113a"
       }
     },
