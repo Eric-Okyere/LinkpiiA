@@ -8,24 +8,26 @@ import {
   Alert,
 } from 'react-native';
 import {
-  GoogleSignin,
+  GoogleAuth,
   isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+  GoogleAuthErrorCodes,
+} from 'react-native-google-auth';
 import baseURL from '../../assets/common/BaseUrl';
 import GoogleLogo from '../../assets/Google.png';
 
 /**
  * "Sign in with Google" button for the login screen.
  *
- * Uses the native @react-native-google-signin/google-signin module (talks
- * to Google Play Services directly), NOT expo-auth-session's Google
- * provider - that was the earlier approach in this file and in the now-
- * removed GoogleLoginButton.jsx, abandoned because its Android flow is
- * unreliable about actually returning an idToken. The native module needs
- * a custom dev client / native build to run - it will not work inside
- * Expo Go.
+ * Uses the native `react-native-google-auth` module, which talks to
+ * Android's Credential Manager / One Tap API directly. This replaced
+ * `@react-native-google-signin/google-signin` (and, before that,
+ * expo-auth-session's browser-based Google provider in the now-removed
+ * GoogleLoginButton.jsx): the old google-signin module relies on Google's
+ * legacy native Sign-In API, which Google has been actively deprecating -
+ * that was the root cause of the persistent `12500 SIGN_IN_FAILED` error
+ * seen on multiple real and emulated devices even with a verified-correct
+ * Android OAuth client (package name + SHA-1). This module needs a custom
+ * dev client / native build to run - it will not work inside Expo Go.
  *
  * On success, it posts the Google idToken to the backend's
  * `auth/google-signin` endpoint (controllers/user.js -> googleSignIn),
@@ -43,11 +45,18 @@ const GoogleSigninBut = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
+      const response = await GoogleAuth.signIn();
 
-      if (!isSuccessResponse(response)) {
+      if (response.type === 'cancelled') {
         // User closed the account picker - not an error, just stop.
+        return;
+      }
+
+      if (response.type === 'noSavedCredentialFound') {
+        Alert.alert(
+          'No Google Account Found',
+          'Add a Google account to this device, then try again.'
+        );
         return;
       }
 
@@ -78,28 +87,28 @@ const GoogleSigninBut = ({ onLoginSuccess }) => {
     } catch (error) {
       if (isErrorWithCode(error)) {
         switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
+          case GoogleAuthErrorCodes.SIGN_IN_CANCELLED:
             break; // user backed out of the picker
-          case statusCodes.IN_PROGRESS:
+          case GoogleAuthErrorCodes.IN_PROGRESS:
             break; // a sign-in is already in flight, ignore this tap
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          case GoogleAuthErrorCodes.PLAY_SERVICES_NOT_AVAILABLE:
             Alert.alert(
               'Google Play Services Required',
               'Please update Google Play Services and try again.'
             );
             break;
           default:
-            console.error('Google Sign-In error:', error);
+            console.error('Google Sign-In error:', error.code, error.message, error);
             Alert.alert(
               'Sign-In Error',
-              'Something went wrong signing in with Google.'
+              `Something went wrong signing in with Google.\n\ncode: ${error.code}\n${error.message || ''}`
             );
         }
       } else {
-        console.error('Google Sign-In error:', error);
+        console.error('Google Sign-In error (no code):', error);
         Alert.alert(
           'Sign-In Error',
-          'Something went wrong signing in with Google.'
+          `Something went wrong signing in with Google.\n\n${error?.message || String(error)}`
         );
       }
     } finally {
