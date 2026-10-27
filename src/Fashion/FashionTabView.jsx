@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
+import HomeCarousel from '../components/HomeCarousel';
 import ProductScreen from './ProductsScreen';
 import ShopScreen from "./ShopsScreen"
 import Services from './Services';
@@ -80,6 +81,9 @@ export default function DropdownTabs() {
           <FontAwesome name="chevron-down" size={16} />
         </TouchableOpacity>
       </View>
+
+      {/* ===== BUSINESS-PARTNER FLYER CAROUSEL ===== */}
+      <HomeCarousel />
 
       {/* ===== SCREEN CONTENT ===== */}
       <View style={{ flex: 1 }}>
