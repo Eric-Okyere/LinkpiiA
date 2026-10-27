@@ -29,6 +29,18 @@ import GoogleLogo from '../../assets/Google.png';
  * Android OAuth client (package name + SHA-1). This module needs a custom
  * dev client / native build to run - it will not work inside Expo Go.
  *
+ * KNOWN ANDROID CREDENTIAL MANAGER BUG: Android's Credential Manager API
+ * (which this library wraps) sometimes throws GetCredentialCancellationException
+ * even after the user picks an account and completes sign-in - the
+ * library's own native code documents this with a link to
+ * https://stackoverflow.com/questions/78345532 and returns
+ * `{ type: 'cancelled', message: '...known Credential Manager issue...' }`
+ * in that case, indistinguishable at the type level from a real,
+ * intentional dismiss. We retry once automatically when that happens,
+ * since the second attempt usually succeeds - only a cancellation on the
+ * retry (or one with no diagnostic message at all) is treated as the user
+ * genuinely backing out.
+ *
  * On success, it posts the Google idToken to the backend's
  * `auth/google-signin` endpoint (controllers/user.js -> googleSignIn),
  * which verifies the token with Google, creates the account on first
@@ -40,25 +52,55 @@ import GoogleLogo from '../../assets/Google.png';
 const GoogleSigninBut = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
 
+  const attemptSignIn = async (isRetry = false) => {
+    const response = await GoogleAuth.signIn();
+    console.log(
+      `Google Sign-In response (${isRetry ? 'retry' : 'first attempt'}):`,
+      JSON.stringify(response)
+    );
+
+    if (response.type === 'cancelled') {
+      // Known Credential Manager bug: a cancellation with a diagnostic
+      // message often means the account picker actually succeeded but the
+      // API misreported it. Retry once before giving up.
+      if (!isRetry && response.message) {
+        console.log(
+          'Google Sign-In: got a cancellation with a diagnostic message - ' +
+            'likely the known Credential Manager bug, retrying once.'
+        );
+        return attemptSignIn(true);
+      }
+      // Real cancel (no message, or already retried once) - just stop.
+      return null;
+    }
+
+    if (response.type === 'configuration_error') {
+      Alert.alert(
+        'Google Sign-In Setup Error',
+        response.message ||
+          'Google Sign-In is not configured correctly. Please check the OAuth client setup.'
+      );
+      return null;
+    }
+
+    if (response.type === 'noSavedCredentialFound') {
+      Alert.alert(
+        'No Google Account Found',
+        'Add a Google account to this device, then try again.'
+      );
+      return null;
+    }
+
+    return response;
+  };
+
   const handlePress = async () => {
     if (loading) return;
     setLoading(true);
 
     try {
-      const response = await GoogleAuth.signIn();
-
-      if (response.type === 'cancelled') {
-        // User closed the account picker - not an error, just stop.
-        return;
-      }
-
-      if (response.type === 'noSavedCredentialFound') {
-        Alert.alert(
-          'No Google Account Found',
-          'Add a Google account to this device, then try again.'
-        );
-        return;
-      }
+      const response = await attemptSignIn();
+      if (!response) return; // cancelled / handled above, nothing more to do
 
       const idToken = response.data?.idToken;
       if (!idToken) {
