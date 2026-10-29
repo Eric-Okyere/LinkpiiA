@@ -3,7 +3,7 @@ import reducers from "./reducers";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { persistReducer, persistStore } from 'redux-persist';
 
-import thunk from "redux-thunk";
+import { thunk } from "redux-thunk";
 
 
 const persistConfig = {
