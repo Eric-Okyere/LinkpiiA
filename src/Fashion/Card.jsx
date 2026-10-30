@@ -9,15 +9,15 @@ import {
 } from "react-native";
 import baseURL from "../../assets/common/BaseUrl";
 import LikeButton from "../components/Drawer/LikeButton";
+import useSaveToggle from "../hooks/useSaveToggle";
 
 const Card = ({
   item,
   navigation,
   setPressLoading,
-  likedProducts,
-  setLikedProducts,
   setCelebrate
 }) => {
+  const { liked, toggle } = useSaveToggle("fashionpost", item._id);
 
   const price = item.price || item.product?.price;
   const discount = item.discount || item.product?.discount;
@@ -51,6 +51,15 @@ const Card = ({
           resizeMode="cover"
         />
 
+        {/* CONDITION TAG (e.g. "new" / "used") */}
+        {item?.condition && (
+          <View style={styles.conditionBadge}>
+            <Text style={styles.conditionText}>
+              {item.condition}
+            </Text>
+          </View>
+        )}
+
         {/* DISCOUNT BADGE */}
         {item?.discount && (
           <View style={styles.discountBadge}>
@@ -60,16 +69,14 @@ const Card = ({
           </View>
         )}
 
-        {/* LIKE BUTTON POSITIONING */}
+        {/* LIKE BUTTON POSITIONING - persisted via useSaveToggle, same
+            backend endpoint the website's heart icons use */}
         <View style={styles.likeButtonWrapper}>
           <LikeButton
             itemId={item._id}
-            liked={!!likedProducts[item._id]}
+            liked={liked}
             onToggle={(isLiked) => {
-              setLikedProducts(prev => ({
-                ...prev,
-                [item._id]: isLiked
-              }));
+              toggle(() => navigation.navigate("login"));
               if (isLiked) setCelebrate(true);
             }}
           />
@@ -135,6 +142,21 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1,
     borderRadius: 8
+  },
+  conditionBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5
+  },
+  conditionText: {
+    color: "#333",
+    fontSize: 9,
+    fontWeight: "700",
+    textTransform: "capitalize"
   },
   discountBadge: {
     position: "absolute",

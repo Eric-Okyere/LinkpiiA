@@ -22,6 +22,7 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import SearchShop from "./SearchShop";
 import ShopCats from "./ShopCats";
 import LikeButton from "../components/Drawer/LikeButton";
+import ShopCard from "./ShopCard";
 
 const { width } = Dimensions.get("window");
 
@@ -41,7 +42,6 @@ const ProductScreen = (props) => {
   const [input, setInput] = useState({ name: "", region: "" });
   const [pressLoading, setPressLoading] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const [likedProducts, setLikedProducts] = useState({});
 
   useFocusEffect(
     useCallback(() => {
@@ -107,67 +107,12 @@ const ProductScreen = (props) => {
   };
 
   const renderProductItem = ({ item }) => (
-    <Pressable
-      onPress={async () => {
-        try {
-          setPressLoading(true);
-          const response = await fetch(`${baseURL}shops/products/${item._id}`);
-          const productData = await response.json();
-          navigation.navigate("Single", productData);
-        } catch (error) {
-          console.error("Error viewing product:", error);
-        } finally {
-          setPressLoading(false);
-        }
-      }}
-      style={{
-        flex: 1,
-        margin: 6,
-        backgroundColor: "#f2f2f2",
-        borderRadius: 10,
-        padding: 8,
-        elevation: 4,
-      }}
-    >
-      <View style={{ position: "relative" }}>
-        <Image
-          source={{ uri: item.picture }}
-          style={{
-            width: "100%",
-            aspectRatio: 1,
-            borderRadius: 8,
-          }}
-          resizeMode="cover"
-        />
-        <View style={{ position: "absolute", top: 6, right: 6 }}>
-          <LikeButton
-            itemId={item._id}
-            liked={!!likedProducts[item._id]}
-            onToggle={(isLiked) => {
-              setLikedProducts((prev) => ({
-                ...prev,
-                [item._id]: isLiked,
-              }));
-              if (isLiked) setCelebrate(true);
-            }}
-          />
-        </View>
-      </View>
-
-      <Text numberOfLines={1} style={{ fontWeight: "bold", fontSize: 13, marginTop: 6 }}>
-        {item.name}
-      </Text>
-
-      <View style={{ marginTop: 2 }}>
-        <Text numberOfLines={1} style={{ fontSize: 12, color: "#f5a53d" }}>{item.description}</Text>
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 3 }}>
-        <Text numberOfLines={1} style={{ fontSize: 9, color: "#555" }}>
-          {item.region?.trim()}, {item.town?.trim()}, {item.location?.trim()}
-        </Text>
-      </View>
-    </Pressable>
+    <ShopCard
+      item={item}
+      navigation={navigation}
+      setPressLoading={setPressLoading}
+      setCelebrate={setCelebrate}
+    />
   );
 
 

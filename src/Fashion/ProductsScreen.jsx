@@ -39,7 +39,6 @@ const ProductScreen = (props) => {
   const [input, setInput] = useState({ name: "", region: "" });
   const [pressLoading, setPressLoading] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const [likedProducts, setLikedProducts] = useState({});
 
   useFocusEffect(
     useCallback(() => {
@@ -109,8 +108,6 @@ const ProductScreen = (props) => {
       item={item}
       navigation={navigation}
       setPressLoading={setPressLoading}
-      likedProducts={likedProducts}
-      setLikedProducts={setLikedProducts}
       setCelebrate={setCelebrate}
     />
   );
