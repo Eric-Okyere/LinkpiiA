@@ -2,7 +2,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import TabViewExamp from '../src/Fashion/FashionTabView';
 import DetailPage from '../src/Fashion/DetailPage';
 import { Platform } from 'react-native';
-import ShopSinglePage from '../src/Fashion/ShopSinglePage';
 import ServicesSinglePage from '../src/Fashion/ServicesSinglePage';
 import SingleProduct from '../Products/SingleProduct';
 
@@ -48,8 +47,8 @@ function FashionStack() {
                 // height: 200,
               },
             }}
-            name="Single" // Giving it a name helps with navigation.navigate("Page")
-            component={ShopSinglePage} 
+            name="Single" // Giving it a name helps with navigation.navigate("Page") - merged into DetailPage (route.name === 'Single' selects shop behavior)
+            component={DetailPage} 
           />
   
 

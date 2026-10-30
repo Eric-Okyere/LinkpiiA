@@ -122,7 +122,34 @@ function CustomMediaCarousel({ data }) {
   );
 }
 
+/**
+ * Shared detail page for both Fashion products ("Detailpage" route) and
+ * Shops ("Single" route) on the Buy tab - previously two ~95%-identical
+ * files (DetailPage.jsx / ShopSinglePage.jsx) with the only real
+ * differences being which backend endpoints to hit. route.name tells us
+ * which entity type we're showing; everything else (carousel, call/
+ * WhatsApp, comments, related items) is one shared implementation.
+ *
+ * This merge also fixes a real bug: ShopSinglePage.jsx's edit/delete
+ * comment calls were hardcoded to the Fashion-only `comment/comments/:id`
+ * endpoint instead of `shopcomment/comments/:id`. Both endpoints update
+ * the same shared Comment collection by id, so editing "worked" by
+ * accident, but deleting a shop's comment through the wrong endpoint
+ * pulled the id from the wrong parent model's `comments` array (Product
+ * instead of Shops) - the Shops document kept a dangling reference to
+ * the now-deleted comment, which would later break that shop's comment
+ * list (populate() returns null for an unresolved ref, crashing the
+ * cmt._id read in the list below). Routing every comment call through
+ * the correct type-specific endpoint (see COMMENT_BASE below) fixes it.
+ */
 export default function DetailPage({ route }) {
+  const isShop = route.name === 'Single';
+  // Every comment/related call below goes through this one prefix so
+  // there's no risk of a stray hardcoded endpoint for one type creeping
+  // back in - see the note above for why that broke shop comment deletes.
+  const COMMENT_BASE = isShop ? 'shopcomment' : 'comment';
+  const RELATED_BASE = isShop ? 'shops' : 'fashionpost';
+
   const [images, setImages] = useState([]);
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState([]);
@@ -160,24 +187,28 @@ export default function DetailPage({ route }) {
   const fetchComments = async (itemId) => {
     setIsCommentsLoading(true);
     try {
-      const endpoints = [
-        `${baseURL}comment/comments/${itemId}`,
-        `${baseURL}buidingcomment/comments/${itemId}`,
-        `${baseURL}shopcomment/comments/${itemId}`
-      ];
-      const responses = await Promise.all(endpoints.map(u => fetch(u)));
-      const data = await Promise.all(responses.map(r => r.ok ? r.json() : { comments: [] }));
-      const allComments = data.flatMap(d => d.comments || []);
-      setComments(allComments.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated)));
-    } catch (error) { console.error(error); } 
-    finally { setIsCommentsLoading(false); }
+      const response = await fetch(`${baseURL}${COMMENT_BASE}/comments/${itemId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const itemComments = data.comments || [];
+        setComments(
+          itemComments.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated))
+        );
+      } else {
+        setComments([]);
+      }
+    } catch (error) {
+      console.error("Fetch Comments Error:", error);
+      setComments([]);
+    } finally {
+      setIsCommentsLoading(false);
+    }
   };
 
    const fetchRelatedData = async () => {
     setLoadingRelated(true);
     try {
-      // Updated to the single services-related route
-      const response = await fetch(`${baseURL}fashionpost/${item._id}/related`);
+      const response = await fetch(`${baseURL}${RELATED_BASE}/${item._id}/related`);
       
       if (response.ok) {
         const data = await response.json();
@@ -202,7 +233,7 @@ export default function DetailPage({ route }) {
     setIsActionLoading(true);
    
     try {
-      const response = await fetch(`${baseURL}comment/${item._id}/comments`, {
+      const response = await fetch(`${baseURL}${COMMENT_BASE}/${item._id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userId, content: comment })
@@ -282,7 +313,7 @@ export default function DetailPage({ route }) {
 const saveEditComment = async (commentId) => {
     if (!editingContent.trim()) return;
     try {
-      const response = await fetch(`${baseURL}comment/comments/${commentId}`, {
+      const response = await fetch(`${baseURL}${COMMENT_BASE}/comments/${commentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editingContent.trim() }),
@@ -305,7 +336,7 @@ const saveEditComment = async (commentId) => {
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: 'destructive', onPress: async () => {
           try {
-            const response = await fetch(`${baseURL}comment/comments/${commentId}`, {
+            const response = await fetch(`${baseURL}${COMMENT_BASE}/comments/${commentId}`, {
               method: 'DELETE',
             });
             if (response.ok) {
@@ -351,7 +382,6 @@ const saveEditComment = async (commentId) => {
           email: data.email, 
           phone: data.phone 
         });
-       console.log(userData,"#######")
       } else {
         console.error('Failed to fetch user profile:', response.status);
       }
@@ -360,9 +390,13 @@ const saveEditComment = async (commentId) => {
     }
   };
 
-
-
-
+  const navigateToListing = (navTarget) => {
+    // Related items stay on the same route (Detailpage vs Single) they
+    // were already on - setParams just swaps the data being shown, same
+    // as before the merge.
+    navigation.setParams(navTarget);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
 
   return (
     <View style={styles.container}>
@@ -372,10 +406,12 @@ const saveEditComment = async (commentId) => {
         <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} style={styles.mainScroll}>
           
           <View style={styles.infoSection}>
-            <View style={styles.badgeRow}>
-              <Text style={styles.conditionBadge}>{item?.condition?.toUpperCase()}</Text>
-              {item.discount > 0 && <Text style={styles.discountBadge}>{item.discount}% OFF</Text>}
-            </View>
+            {(item?.condition || item.discount > 0) && (
+              <View style={styles.badgeRow}>
+                {item?.condition && <Text style={styles.conditionBadge}>{item.condition.toUpperCase()}</Text>}
+                {item.discount > 0 && <Text style={styles.discountBadge}>{item.discount}% OFF</Text>}
+              </View>
+            )}
             
             <Text style={styles.productTitle}>{item.name}</Text>
 
@@ -458,7 +494,8 @@ const saveEditComment = async (commentId) => {
 
           <View style={styles.divider} />
 
-          {/* REFACTORED COMMENT SECTION */}
+          {/* COMMENT SECTION - CRUD routed through COMMENT_BASE above, so it
+              always hits the right backend collection for this item's type */}
           <View style={styles.commentSection}>
             <Text style={styles.sectionTitle}>Questions & Messages</Text>
             <View style={styles.commentInputWrapper}>
@@ -550,13 +587,17 @@ const saveEditComment = async (commentId) => {
             
             <View style={styles.relatedGrid}>
                 {loadingRelated ? <ActivityIndicator color="#f5a53d" /> : relatedProducts.map((prod, index) => (
-                <TouchableOpacity key={index} style={styles.relatedCard} onPress={() => { navigation.setParams(prod); scrollViewRef.current?.scrollTo({ y: 0, animated: true }); }}>
+                <TouchableOpacity key={index} style={styles.relatedCard} onPress={() => navigateToListing(prod)}>
                     <Image source={{ uri: prod.picture }} style={styles.relatedImg} />
                     <View style={styles.relatedInfo}>
                         <Text numberOfLines={1} style={styles.relatedTitle}>{prod.name}</Text>
-                        <Text style={styles.relatedPrice}>Gh₵{prod.price}</Text>
+                        {isShop ? (
+                          <Text numberOfLines={1} style={styles.relatedPrice}>{prod.description}</Text>
+                        ) : (
+                          <Text style={styles.relatedPrice}>Gh₵{prod.price}</Text>
+                        )}
                         <Text numberOfLines={1} style={styles.locationText}>
-                        {(item.region || item.product?.region)?.trim()}, {(item.town || item.product?.town)?.trim()},{(item.location || item.product?.location)?.trim()}
+                        {(prod.region || prod.product?.region)?.trim()}, {(prod.town || prod.product?.town)?.trim()},{(prod.location || prod.product?.location)?.trim()}
                       </Text>
                     </View>
                 </TouchableOpacity>

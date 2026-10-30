@@ -217,17 +217,16 @@ const ProductScreen = (props) => {
             ) : (
               <View style={{ flex: 1 }}>
                 <View style={styles.filterRow}>
-                  <View style={styles.categoriesWrap}>
-                    <ShopCats
-                      categoryFilter={changeCtg}
-                      categories={categories}
-                    />
-                  </View>
+                  <ShopCats
+                    categoryFilter={changeCtg}
+                    categories={categories}
+                  />
                   {regions.length > 0 && (
                     <TouchableOpacity
                       style={styles.regionChip}
                       onPress={() => setRegionModalVisible(true)}
                     >
+                      <Ionicons name="location-outline" size={14} color={theme.colors.ink700} />
                       <Text style={styles.regionChipText} numberOfLines={1}>
                         {selectedRegion === "all" ? "All regions" : selectedRegion}
                       </Text>
@@ -369,29 +368,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingTop: 10,
   },
+  // Categories scrolls full-width on its own row; the region chip sits
+  // directly below it instead of sharing the row (sharing it let the
+  // chip overlap/cover the last category pill on narrower phones).
   filterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingRight: 12,
-  },
-  categoriesWrap: {
-    flex: 1,
+    paddingBottom: 4,
   },
   regionChip: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     backgroundColor: theme.colors.ink100,
     borderRadius: theme.radius.pill,
     paddingHorizontal: 12,
     height: 32,
-    marginLeft: 8,
-    maxWidth: 140,
+    marginLeft: 12,
+    marginTop: 6,
+    maxWidth: 200,
   },
   regionChipText: {
     fontSize: 12,
     fontWeight: "600",
     color: theme.colors.ink700,
-    marginRight: 4,
+    marginHorizontal: 6,
   },
   regionOverlay: {
     flex: 1,
