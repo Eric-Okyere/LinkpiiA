@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  TextInput, 
-  Dimensions, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  Modal, 
+import React, { useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
   ScrollView,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import * as yup from 'yup';
 import AppNotification from '../AppNotification';
@@ -21,42 +20,49 @@ import { useDispatch, useSelector } from 'react-redux';
 import { signUp } from '../Redux/actions';
 import baseURL from '../../assets/common/BaseUrl';
 import axios from 'axios';
-import { MaterialIcons } from '@expo/vector-icons';
+import AuthField from '../components/AuthField';
 
-const { width, height } = Dimensions.get("window");
+const GOLD = '#f5a53d';
 
 const initialValues = {
-  name: "",
-  lastname: "",
-  email: "",
-  phone: "",
-  password: "",
-  confirmPassword: "",
+  name: '',
+  lastname: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: '',
 };
 
 const validationSchema = yup.object({
-  name: yup.string().trim().required("Please input your first name!"),
-  lastname: yup.string().trim().required("Please input your last name!"),
-  email: yup.string().trim().email("Invalid email").required("Please input your email!"),
-  phone: yup.string().trim().required("Please input your phone number!")
-    .min(10, "Phone number must be at least 10 digits")
-    .max(15, "Phone number must be at most 15 digits"),
-  password: yup.string().trim().min(4, "Your password is too short!").required("Please input your password!"),
+  name: yup.string().trim().required('Please input your first name!'),
+  lastname: yup.string().trim().required('Please input your last name!'),
+  email: yup.string().trim().email('Invalid email').required('Please input your email!'),
+  phone: yup
+    .string()
+    .trim()
+    .required('Please input your phone number!')
+    .min(10, 'Phone number must be at least 10 digits')
+    .max(15, 'Phone number must be at most 15 digits'),
+  password: yup.string().trim().min(4, 'Your password is too short!').required('Please input your password!'),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref("password"), null], "Passwords must match")
-    .required("Please confirm your password!"),
+    .oneOf([yup.ref('password'), null], 'Passwords must match')
+    .required('Please confirm your password!'),
 });
 
 const Signup = ({ navigation }) => {
-  const [message, setMessage] = useState({ text: "", type: "" });
+  const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
   const [agreeLoading, setAgreeLoading] = useState(false);
   const [eulaVisible, setEulaVisible] = useState(false);
   const dispatch = useDispatch();
   const userState = useSelector((state) => state.user);
-  const [showPassword, setShowPassword] = useState(false); 
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const lastnameRef = useRef(null);
+  const emailRef = useRef(null);
+  const phoneRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   const checkForToxicComments = async (text) => {
     try {
@@ -64,7 +70,7 @@ const Signup = ({ navigation }) => {
       return response.data.isToxic;
     } catch (error) {
       console.error(error);
-      return false; 
+      return false;
     }
   };
 
@@ -74,7 +80,7 @@ const Signup = ({ navigation }) => {
 
     if (isToxic) {
       setLoading(false);
-      return updateNotification(setMessage, "Your input contains inappropriate language.");
+      return updateNotification(setMessage, 'Your input contains inappropriate language.');
     }
 
     const res = await signup(values);
@@ -95,242 +101,290 @@ const Signup = ({ navigation }) => {
       const response = await axios.put(`${baseURL}eula/${userState}/eula`);
       if (response.status === 200) {
         setEulaVisible(false);
-        navigation.navigate("login");
+        navigation.navigate('login');
       } else {
-        setMessage({ text: "Failed to accept EULA", type: "error" });
+        setMessage({ text: 'Failed to accept EULA', type: 'error' });
       }
     } catch (error) {
       console.error(error);
-      setMessage({ text: "Internal Server Error", type: "error" });
+      setMessage({ text: 'Internal Server Error', type: 'error' });
     } finally {
       setAgreeLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        onSubmit={handleSignup}
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
       >
-        {({ errors, values, touched, handleSubmit, handleChange, handleBlur }) => (
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
-            keyboardShouldPersistTaps="handled" 
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={{ marginTop: 80 }}>
-              <Text style={styles.headerText}>Register with us</Text>
-              
-              <View style={styles.formContent}>
-                <Text style={styles.err}>{touched.name && errors.name ? errors.name : ""}</Text>
-                <TextInput 
-                  onChangeText={handleChange("name")}  
-                  placeholder='Enter your first name' 
-                  style={styles.input} 
-                  onBlur={handleBlur("name")}
-                  value={values.name}
-                />
-
-                <Text style={styles.err}>{touched.lastname && errors.lastname ? errors.lastname : ""}</Text>
-                <TextInput 
-                  onChangeText={handleChange("lastname")}  
-                  placeholder='Enter your last name' 
-                  style={styles.input} 
-                  onBlur={handleBlur("lastname")}
-                  value={values.lastname}
-                />
-
-                <Text style={styles.err}>{touched.email && errors.email ? errors.email : ""}</Text>
-                <TextInput 
-                  autoCapitalize='none' 
-                  onChangeText={handleChange("email")} 
-                  placeholder='example@gmail.com' 
-                  style={styles.input} 
-                  onBlur={handleBlur("email")}
-                  value={values.email}
-                  keyboardType="email-address"
-                />
-
-                <Text style={styles.err}>{touched.phone && errors.phone ? errors.phone : ""}</Text>
-                <TextInput 
-                  keyboardType='numeric' 
-                  autoCapitalize='none' 
-                  onChangeText={handleChange("phone")} 
-                  placeholder='Enter phone number' 
-                  style={styles.input} 
-                  onBlur={handleBlur("phone")}
-                  value={values.phone}
-                />
-
-                <Text style={styles.err}>{touched.password && errors.password ? errors.password : ""}</Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passinput}
-                    placeholder="Password"
-                    secureTextEntry={!showPassword}
-                    onChangeText={handleChange("password")}
-                    onBlur={handleBlur("password")}
-                    value={values.password}
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <MaterialIcons name={showPassword ? "visibility" : "visibility-off"} size={24} color="gray" />
-                  </TouchableOpacity>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={handleSignup}
+        >
+          {({ errors, values, touched, handleSubmit, handleChange, handleBlur }) => (
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.brandWrap}>
+                <View style={styles.logoRing}>
+                  <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
                 </View>
+                <Text style={styles.title}>Create your account</Text>
+                <Text style={styles.subtitle}>Join Linkpii to buy, sell and connect</Text>
+              </View>
 
-                <Text style={styles.err}>{touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : ""}</Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passinput}
-                    placeholder="Confirm Password"
-                    secureTextEntry={!showConfirmPassword}
-                    onChangeText={handleChange("confirmPassword")}
-                    onBlur={handleBlur("confirmPassword")}
-                    value={values.confirmPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    <MaterialIcons name={showConfirmPassword ? "visibility" : "visibility-off"} size={24} color="gray" />
-                  </TouchableOpacity>
-                </View>
-
-                {message.text ? (<AppNotification type={message.type} text={message.text} />) : null}
-
-                <TouchableOpacity style={styles.btn} onPress={handleSubmit} disabled={loading}>
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.btnText}>Signup</Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* Replaced Center with a centered View */}
-                <View style={styles.centerContainer}>
-                  <View style={styles.loginPrompt}>
-                    <Text style={styles.promptText}>Already have an account?</Text>
-                    <TouchableOpacity style={styles.btncont} onPress={() => navigation.navigate("login")}>
-                      <Text style={styles.btnText}>Login</Text>
-                    </TouchableOpacity>
+              <View style={styles.card}>
+                <View style={styles.row}>
+                  <View style={styles.rowField}>
+                    <AuthField
+                      icon="person-outline"
+                      placeholder="First name"
+                      value={values.name}
+                      onChangeText={handleChange('name')}
+                      onBlur={handleBlur('name')}
+                      error={errors.name}
+                      touched={touched.name}
+                      returnKeyType="next"
+                      onSubmitEditing={() => lastnameRef.current && lastnameRef.current.focus()}
+                      blurOnSubmit={false}
+                    />
+                  </View>
+                  <View style={styles.rowField}>
+                    <AuthField
+                      inputRef={lastnameRef}
+                      icon="person-outline"
+                      placeholder="Last name"
+                      value={values.lastname}
+                      onChangeText={handleChange('lastname')}
+                      onBlur={handleBlur('lastname')}
+                      error={errors.lastname}
+                      touched={touched.lastname}
+                      returnKeyType="next"
+                      onSubmitEditing={() => emailRef.current && emailRef.current.focus()}
+                      blurOnSubmit={false}
+                    />
                   </View>
                 </View>
+
+                <AuthField
+                  inputRef={emailRef}
+                  icon="mail-outline"
+                  placeholder="example@gmail.com"
+                  value={values.email}
+                  onChangeText={handleChange('email')}
+                  onBlur={handleBlur('email')}
+                  error={errors.email}
+                  touched={touched.email}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  returnKeyType="next"
+                  onSubmitEditing={() => phoneRef.current && phoneRef.current.focus()}
+                  blurOnSubmit={false}
+                />
+
+                <AuthField
+                  inputRef={phoneRef}
+                  icon="phone-iphone"
+                  placeholder="Phone number"
+                  value={values.phone}
+                  onChangeText={handleChange('phone')}
+                  onBlur={handleBlur('phone')}
+                  error={errors.phone}
+                  touched={touched.phone}
+                  keyboardType="numeric"
+                  autoCapitalize="none"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current && passwordRef.current.focus()}
+                  blurOnSubmit={false}
+                />
+
+                <AuthField
+                  inputRef={passwordRef}
+                  icon="lock-outline"
+                  placeholder="Password"
+                  value={values.password}
+                  onChangeText={handleChange('password')}
+                  onBlur={handleBlur('password')}
+                  error={errors.password}
+                  touched={touched.password}
+                  secureToggle
+                  returnKeyType="next"
+                  onSubmitEditing={() => confirmPasswordRef.current && confirmPasswordRef.current.focus()}
+                  blurOnSubmit={false}
+                />
+
+                <AuthField
+                  inputRef={confirmPasswordRef}
+                  icon="lock-outline"
+                  placeholder="Confirm password"
+                  value={values.confirmPassword}
+                  onChangeText={handleChange('confirmPassword')}
+                  onBlur={handleBlur('confirmPassword')}
+                  error={errors.confirmPassword}
+                  touched={touched.confirmPassword}
+                  secureToggle
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                />
+
+                {message.text ? <AppNotification type={message.type} text={message.text} /> : null}
+
+                <TouchableOpacity
+                  style={[styles.btn, loading && styles.btnDisabled]}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#000" />
+                  ) : (
+                    <Text style={styles.btnText}>Create account</Text>
+                  )}
+                </TouchableOpacity>
               </View>
-            </View>
-          </ScrollView>
-        )}
-      </Formik>
 
-      <Modal animationType="slide" transparent={true} visible={eulaVisible}>
-        <View style={styles.modalView}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.modalText}>End User License Agreement (EULA)</Text>
-            <Text style={styles.eulaContent}>1. Introduction{"\n"}Linkpii is an application that allows users to generate, submit, and sell content...</Text>
-            {/* ... Add remaining EULA text here ... */}
-            <Text style={styles.eulaContent}>17. Acknowledgment{"\n"}By downloading, installing, or using the Application, you acknowledge that you have read and understood this Agreement.</Text>
-          </ScrollView>
+              <View style={styles.loginRow}>
+                <Text style={styles.loginPrompt}>Already have an account?</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('login')}>
+                  <Text style={styles.loginLink}>Log in</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+        </Formik>
 
-          <TouchableOpacity
-            style={styles.agreeButton}
-            onPress={handleAgree}
-            disabled={agreeLoading}
-          >
-            {agreeLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>I Agree</Text>}
-          </TouchableOpacity>
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+        <Modal animationType="slide" transparent visible={eulaVisible}>
+          <View style={styles.modalView}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalText}>End User License Agreement (EULA)</Text>
+              <Text style={styles.eulaContent}>
+                1. Introduction{'\n'}Linkpii is an application that allows users to generate, submit, and sell content...
+              </Text>
+              <Text style={styles.eulaContent}>
+                17. Acknowledgment{'\n'}By downloading, installing, or using the Application, you acknowledge that you have read and understood this Agreement.
+              </Text>
+            </ScrollView>
+
+            <TouchableOpacity style={styles.agreeButton} onPress={handleAgree} disabled={agreeLoading}>
+              {agreeLoading ? <ActivityIndicator color="#000" /> : <Text style={styles.agreeButtonText}>I Agree</Text>}
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
+    backgroundColor: '#000',
   },
-  formContent: {
-    paddingHorizontal: 20,
-    marginTop: -20
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 40,
   },
-  headerText: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#f5a53d",
-    textAlign: "center",
-    marginBottom: 40
+  brandWrap: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  input: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 10,
-    fontSize: 16,
-    marginBottom: 5,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginBottom: 5,
-  },
-  passinput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  btn: {
-    backgroundColor: "#f5a53d",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  btnText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  err: {
-    color: "#e53935",
-    fontSize: 12,
-    marginBottom: 2,
-    marginLeft: 4,
-  },
-  centerContainer: {
+  logoRing: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: '#141414',
+    borderWidth: 1.5,
+    borderColor: '#262626',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20
+    marginBottom: 14,
+  },
+  logo: {
+    width: 40,
+    height: 40,
+  },
+  title: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  subtitle: {
+    color: '#9a9a9a',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: '#0d0d0d',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#1e1e1e',
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  rowField: {
+    flex: 1,
+  },
+  btn: {
+    backgroundColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  btnDisabled: {
+    opacity: 0.7,
+  },
+  btnText: {
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  loginRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
   },
   loginPrompt: {
-    flexDirection: "row",
-    alignItems: "center",
+    color: '#9a9a9a',
+    fontSize: 14,
+    marginRight: 6,
   },
-  promptText: {
-    fontSize: 15,
-    color: "#f5a53d",
-    marginRight: 8,
-  },
-  btncont: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#f5a53d",
+  loginLink: {
+    color: GOLD,
+    fontSize: 14,
+    fontWeight: '700',
   },
   modalView: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     marginTop: 50,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 25,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -338,22 +392,27 @@ const styles = StyleSheet.create({
   },
   modalText: {
     fontSize: 22,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 15,
-    color: "#1e1e1e",
+    color: '#1e1e1e',
   },
   eulaContent: {
     fontSize: 14,
-    color: "#444",
+    color: '#444',
     marginBottom: 15,
     lineHeight: 20,
   },
   agreeButton: {
-    backgroundColor: "#f5a53d",
+    backgroundColor: GOLD,
     paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: "center",
+    borderRadius: 14,
+    alignItems: 'center',
     marginTop: 20,
+  },
+  agreeButtonText: {
+    color: '#000',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
 
