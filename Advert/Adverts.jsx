@@ -34,6 +34,7 @@ import LikeButton from '../src/components/Drawer/LikeButton';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import HomeCarousel from '../src/components/HomeCarousel';
+import theme from '../src/Styles/designSystem';
 
 const { height, width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 3; 
@@ -361,9 +362,14 @@ export default function Adverts() {
           <View style={{ position: 'relative' }}>
             <Image
               source={{ uri: item.picture || item.image || item.uri }}
-              style={{ width: '100%', height: IMAGE_HEIGHT, borderTopLeftRadius: 10, borderTopRightRadius: 10 }}
+              style={{ width: '100%', height: IMAGE_HEIGHT, borderTopLeftRadius: theme.radius.md, borderTopRightRadius: theme.radius.md }}
               resizeMode="cover"
             />
+            {item?.condition && (
+              <View style={styles.conditionBadgeSmall}>
+                <Text style={styles.conditionTextSmall}>{item.condition}</Text>
+              </View>
+            )}
             {item?.discount > 0 && (
               <View style={styles.discountBadgeSmall}>
                 <Text style={styles.discountTextSmall}>{item.discount}%</Text>
@@ -405,14 +411,14 @@ export default function Adverts() {
     <View style={styles.container}>
       <View style={styles.proHeader}>
         <View style={styles.headerTop}>
-          <Text style={styles.logoText}>Linkpii <Text style={{color: '#f5a53d'}}>Ads</Text></Text>
+          <Text style={styles.logoText}>Linkpii <Text style={{color: theme.colors.brand600}}>Ads</Text></Text>
           <View style={styles.headerSupport}>
             <TouchableOpacity onPress={() => setIsSupportModalVisible(true)}>
               <FontAwesome5 name="whatsapp" size={18} color="#25D366" />
             </TouchableOpacity>
             <View style={styles.vDivider} />
             <TouchableOpacity onPress={() => setIsSupportModalVisible(true)}>
-              <Feather name="phone" size={18} color="#333" />
+              <Feather name="phone" size={18} color={theme.colors.ink700} />
             </TouchableOpacity>
           </View>
         </View>
@@ -431,13 +437,13 @@ export default function Adverts() {
         </View>
       ) : isLoading && !isRefreshing ? (
         <View style={styles.centerLoader}>
-          <ActivityIndicator size="large" color="#f5a53d" />
+          <ActivityIndicator size="large" color={theme.colors.brand600} />
           <Text style={styles.loadingText}>Fetching Latest Ads...</Text>
         </View>
       ) : (
         <ScrollView 
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadData(false); }} tintColor="#f5a53d" />}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadData(false); }} tintColor={theme.colors.brand600} />}
         >
           <HomeCarousel />
 
@@ -514,7 +520,7 @@ export default function Adverts() {
 
       {/* Modals & Overlays */}
       <Modal transparent visible={isDetailLoading} animationType="fade">
-        <View style={styles.loadingOverlay}><View style={styles.loadingBox}><ActivityIndicator color="#f5a53d" /><Text style={{marginTop:8}}>Opening...</Text></View></View>
+        <View style={styles.loadingOverlay}><View style={styles.loadingBox}><ActivityIndicator color={theme.colors.brand600} /><Text style={{marginTop:8, color: theme.colors.ink700}}>Opening...</Text></View></View>
       </Modal>
 
       <Modal transparent visible={regionModalVisible} animationType="fade">
@@ -553,7 +559,7 @@ export default function Adverts() {
              <Text style={styles.modalSub}>{selectedItem?.name}</Text>
              <View style={styles.contactOptions}>
                 <TouchableOpacity onPress={handlePhoneCall} style={styles.contactBtn}>
-                  <View style={[styles.iconCircle, {backgroundColor: '#FFF7ED'}]}><Feather name="phone-call" size={24} color="#f5a53d" /></View>
+                  <View style={[styles.iconCircle, {backgroundColor: theme.colors.brand100}]}><Feather name="phone-call" size={24} color={theme.colors.brand600} /></View>
                   <Text style={styles.contactText}>Phone Call</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={openWhatsApp} style={styles.contactBtn}>
@@ -569,7 +575,7 @@ export default function Adverts() {
       <Modal transparent visible={isPhoneModalVisible} animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.phoneModalContainer}>
-            <View style={styles.iconHeader}><Ionicons name="phone-portrait-outline" size={40} color="#f5a53d" /></View>
+            <View style={styles.iconHeader}><Ionicons name="phone-portrait-outline" size={40} color={theme.colors.brand600} /></View>
             <Text style={styles.title}>Update Phone Number</Text>
             <Text style={styles.phoneDesc}>Please provide your number so sellers can contact you easily.</Text>
             <PhoneInput defaultCode="GH" layout="first" onChangeFormattedText={setNewPhoneNumber} containerStyle={styles.phoneInputContainer} textContainerStyle={styles.phoneTextContainer} />
@@ -581,7 +587,7 @@ export default function Adverts() {
       <Modal animationType="fade" transparent visible={isSupportModalVisible} onRequestClose={() => setIsSupportModalVisible(false)}>
         <View style={styles.supportOverlay}>
           <View style={styles.supportBox}>
-            <View style={styles.supportHeader}><MaterialCommunityIcons name="headset" size={30} color="#f5a53d" /><Text style={styles.supportTitle}>Linkpii Support</Text></View>
+            <View style={styles.supportHeader}><MaterialCommunityIcons name="headset" size={30} color={theme.colors.brand600} /><Text style={styles.supportTitle}>Linkpii Support</Text></View>
             <Text style={styles.supportSub}>How can we help you?</Text>
             <TouchableOpacity style={styles.supportOption} onPress={() => { Linking.openURL(`whatsapp://send?phone=233209317581`); setIsSupportModalVisible(false); }}>
               <FontAwesome5 name="whatsapp" size={20} color="#25D366" /><Text style={styles.supportOptionText}>Chat on WhatsApp</Text>
@@ -600,99 +606,125 @@ export default function Adverts() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 15, color: '#666', fontWeight: '600' },
-  proHeader: { backgroundColor: 'white', paddingTop: 30, paddingBottom: 15, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  loadingText: { marginTop: 15, color: theme.colors.ink500, fontWeight: '600' },
+  proHeader: {
+    backgroundColor: theme.colors.surface,
+    paddingTop: 30,
+    paddingBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logoText: { fontSize: 22, fontWeight: '900' },
-  headerSupport: { flexDirection: 'row', backgroundColor: '#F3F4F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignItems: 'center' },
-  vDivider: { width: 1, height: 14, backgroundColor: '#D1D5DB', marginHorizontal: 10 },
-  subText: { fontSize: 11, color: '#6B7280', alignSelf: 'center', marginTop: 10, fontWeight: '600' },
-  carouselContainer: { height: height / 3.4, backgroundColor: 'white', marginBottom: 10 },
+  logoText: { fontSize: 22, fontWeight: '900', color: theme.colors.ink900, letterSpacing: 0.2 },
+  headerSupport: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.ink100,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.pill,
+    alignItems: 'center',
+  },
+  vDivider: { width: 1, height: 14, backgroundColor: theme.colors.border, marginHorizontal: 10 },
+  subText: { fontSize: 11, color: theme.colors.ink500, alignSelf: 'center', marginTop: 10, fontWeight: '600' },
+  carouselContainer: { height: height / 3.4, backgroundColor: theme.colors.surface, marginBottom: 10 },
   carouselSlide: { width, height: height / 3.4, justifyContent: 'center', alignItems: 'center' },
-  carouselImgWrapper: { position: 'relative', width: width - 30, height: height / 4, borderRadius: 20, overflow: 'hidden' },
+  carouselImgWrapper: { position: 'relative', width: width - 30, height: height / 4, borderRadius: theme.radius.xl, overflow: 'hidden' },
   carouselImg: { width: '100%', height: '100%' },
-  carouselCallBtn: { position: 'absolute', bottom: 12, right: 12, backgroundColor: '#07ed6b', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 8 },
-  filterSection: { paddingHorizontal: 12, marginBottom: 10 },
+  carouselCallBtn: { position: 'absolute', bottom: 12, right: 12, backgroundColor: theme.colors.success, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 8 },
+  filterSection: { paddingHorizontal: theme.spacing.md, marginBottom: theme.spacing.sm },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    height: 44,
-    marginBottom: 10,
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.lg,
+    height: 46,
+    marginBottom: theme.spacing.sm,
+    ...theme.shadow.card,
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#111', padding: 0 },
-  filterChipsRow: { alignItems: 'center', paddingRight: 12 },
+  searchInput: { flex: 1, marginLeft: theme.spacing.sm, fontSize: 14, color: theme.colors.ink900, padding: 0 },
+  filterChipsRow: { alignItems: 'center', paddingRight: theme.spacing.md },
   categoryPill: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
+    backgroundColor: theme.colors.ink100,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
-  categoryPillActive: { backgroundColor: '#f5a53d' },
-  categoryPillText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
-  categoryPillTextActive: { color: 'white' },
+  categoryPillActive: { backgroundColor: theme.colors.brand600 },
+  categoryPillText: { fontSize: 12, fontWeight: '600', color: theme.colors.ink700 },
+  categoryPillTextActive: { color: theme.colors.surface },
   regionChipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 18,
-    paddingHorizontal: 14,
+    backgroundColor: theme.colors.ink100,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: theme.spacing.lg,
     height: 34,
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
   },
-  regionChipText: { fontSize: 12, fontWeight: '600', color: '#333', marginHorizontal: 6, maxWidth: 160 },
-  regionOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', paddingHorizontal: 40 },
-  regionMenu: { backgroundColor: 'white', borderRadius: 14, paddingVertical: 6 },
+  regionChipText: { fontSize: 12, fontWeight: '600', color: theme.colors.ink700, marginHorizontal: 6, maxWidth: 160 },
+  regionOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', paddingHorizontal: 40 },
+  regionMenu: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, paddingVertical: 6, ...theme.shadow.floating },
   regionOption: { paddingVertical: 12, paddingHorizontal: 18 },
-  regionOptionText: { fontSize: 15, color: '#222' },
+  regionOptionText: { fontSize: 15, color: theme.colors.ink900 },
   emptyState: { alignItems: 'center', paddingHorizontal: 30, paddingVertical: 50 },
-  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 16 },
-  emptySub: { textAlign: 'center', color: '#777', marginTop: 6 },
-  masonryContainer: { flexDirection: 'row', padding: 12, justifyContent: 'space-between', paddingBottom: 100 },
+  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.ink900, marginTop: 16 },
+  emptySub: { textAlign: 'center', color: theme.colors.ink500, marginTop: 6 },
+  masonryContainer: { flexDirection: 'row', padding: theme.spacing.md, justifyContent: 'space-between', paddingBottom: 100 },
   col: { width: COLUMN_WIDTH },
-  itemCard: { backgroundColor: 'white', borderRadius: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 2 } },
-  discountBadgeSmall: { position: 'absolute', bottom: 5, left: 5, backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-  discountTextSmall: { color: '#f5a53d', fontSize: 10, fontWeight: 'bold' },
-  priceText: { fontSize: 12, color: '#f5a53d', fontWeight: 'bold', marginTop: 2 },
-  locationText: { fontSize: 10, color: '#555', marginTop: 2 },
-  loadingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
-  loadingBox: { backgroundColor: 'white', padding: 25, borderRadius: 15, alignItems: 'center' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  callModalContainer: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, alignItems: 'center' },
-  modalDragIndicator: { width: 40, height: 4, backgroundColor: '#EEE', borderRadius: 2, marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '900' },
-  modalSub: { fontSize: 14, color: '#666', marginBottom: 25 },
+  itemCard: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, ...theme.shadow.card },
+  conditionBadgeSmall: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.radius.sm,
+  },
+  conditionTextSmall: { color: theme.colors.ink700, fontSize: 9, fontWeight: '700', textTransform: 'capitalize' },
+  discountBadgeSmall: { position: 'absolute', bottom: 5, left: 5, backgroundColor: theme.colors.ink900, paddingHorizontal: 6, paddingVertical: 2, borderRadius: theme.radius.sm },
+  discountTextSmall: { color: theme.colors.brand500, fontSize: 10, fontWeight: 'bold' },
+  priceText: { fontSize: 12, color: theme.colors.brand700, fontWeight: 'bold', marginTop: 2 },
+  locationText: { fontSize: 10, color: theme.colors.ink500, marginTop: 2 },
+  loadingOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center' },
+  loadingBox: { backgroundColor: theme.colors.surface, padding: 25, borderRadius: theme.radius.lg, alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' },
+  callModalContainer: { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.xl, borderTopRightRadius: theme.radius.xl, padding: theme.spacing.xxl, alignItems: 'center', ...theme.shadow.sheet },
+  modalDragIndicator: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.ink900 },
+  modalSub: { fontSize: 14, color: theme.colors.ink500, marginBottom: 25 },
   contactOptions: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
   contactBtn: { alignItems: 'center', flex: 1 },
   iconCircle: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  contactText: { fontSize: 14, fontWeight: '700' },
+  contactText: { fontSize: 14, fontWeight: '700', color: theme.colors.ink900 },
   closeBtn: { padding: 15 },
-  phoneModalContainer: { backgroundColor: 'white', borderRadius: 20, padding: 20, margin: 20, alignItems: 'center' },
-  title: { fontSize: 18, fontWeight: 'bold', marginVertical: 10 },
-  phoneDesc: { textAlign: 'center', color: '#666', marginBottom: 15 },
-  phoneInputContainer: { width: '100%', height: 60, borderRadius: 10, borderWidth: 1, borderColor: '#DDD' },
-  phoneTextContainer: { borderRadius: 10, backgroundColor: 'white' },
-  saveButton: { backgroundColor: '#f5a53d', width: '100%', padding: 15, borderRadius: 10, marginTop: 10, alignItems: 'center' },
-  saveButtonText: { color: 'white', fontWeight: 'bold' },
+  phoneModalContainer: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: theme.spacing.xl, margin: 20, alignItems: 'center', ...theme.shadow.floating },
+  title: { fontSize: 18, fontWeight: 'bold', marginVertical: 10, color: theme.colors.ink900 },
+  phoneDesc: { textAlign: 'center', color: theme.colors.ink500, marginBottom: 15 },
+  phoneInputContainer: { width: '100%', height: 60, borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.colors.border },
+  phoneTextContainer: { borderRadius: theme.radius.sm, backgroundColor: theme.colors.surface },
+  saveButton: { backgroundColor: theme.colors.brand600, width: '100%', padding: 15, borderRadius: theme.radius.sm, marginTop: 10, alignItems: 'center' },
+  saveButtonText: { color: theme.colors.surface, fontWeight: 'bold' },
   errorScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
-  errorTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginTop: 20 },
-  errorSub: { textAlign: 'center', color: '#777', marginVertical: 10 },
-  retryBtn: { backgroundColor: '#f5a53d', flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 30, borderRadius: 25, marginTop: 15, elevation: 5 },
-  retryText: { color: 'white', fontWeight: 'bold' },
-  supportOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  supportBox: { width: '85%', backgroundColor: 'white', borderRadius: 20, padding: 25, alignItems: 'center' },
+  errorTitle: { fontSize: 20, fontWeight: 'bold', color: theme.colors.ink900, marginTop: 20 },
+  errorSub: { textAlign: 'center', color: theme.colors.ink500, marginVertical: 10 },
+  retryBtn: { backgroundColor: theme.colors.brand600, flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 30, borderRadius: theme.radius.pill, marginTop: 15, ...theme.shadow.floating },
+  retryText: { color: theme.colors.surface, fontWeight: 'bold' },
+  supportOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center' },
+  supportBox: { width: '85%', backgroundColor: theme.colors.surface, borderRadius: theme.radius.xl, padding: theme.spacing.xxl, alignItems: 'center' },
   supportHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  supportTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 10 },
-  supportSub: { marginBottom: 20, color: '#666' },
-  supportOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', width: '100%', padding: 15, borderRadius: 10, marginBottom: 10 },
-  supportOptionText: { marginLeft: 10, fontWeight: '600' },
-  supportCloseText: { color: '#f5a53d', marginTop: 10, fontWeight: 'bold' },
+  supportTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 10, color: theme.colors.ink900 },
+  supportSub: { marginBottom: 20, color: theme.colors.ink500 },
+  supportOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.ink100, width: '100%', padding: 15, borderRadius: theme.radius.sm, marginBottom: 10 },
+  supportOptionText: { marginLeft: 10, fontWeight: '600', color: theme.colors.ink900 },
+  supportClose: { padding: 15 },
+  supportCloseText: { color: theme.colors.brand600, marginTop: 10, fontWeight: 'bold' },
 });
