@@ -60,7 +60,14 @@
       ],
       "expo-font",
       "expo-video",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "react-native-google-auth",
+        {
+          "androidClientId": "450195054535-tbf14l0n9dhvjon1ili187agq5bcf89k.apps.googleusercontent.com",
+          "iosClientId": "450195054535-j1v4j3vcg8rtl0oek01n1g7nkto7c7vc.apps.googleusercontent.com"
+        }
+      ]
     ],
     "extra": {
       "eas": {

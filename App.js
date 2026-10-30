@@ -20,6 +20,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 // Internal Imports
 import store, { persistor } from "./src/Redux/store";
 import UserNav from "./Navigations/UserNavigator.jsx";
+import { configureGoogleSignIn } from "./src/config/googleAuth";
 
 export default function App() {
   const [isConnected, setIsConnected] = useState(true);
@@ -64,6 +65,11 @@ export default function App() {
 
   // --- 2. LIFECYCLE & NETWORK MONITORING ---
   useEffect(() => {
+    // Configure the native Google Sign-In SDK once, up front, so the
+    // "Sign in with Google" button on the login screen is ready the
+    // moment the user taps it.
+    configureGoogleSignIn();
+
     // Run the silent update check on app launch
     handleSelfUpdate();
 
