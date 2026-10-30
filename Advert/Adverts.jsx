@@ -479,19 +479,20 @@ export default function Adverts() {
                   </TouchableOpacity>
                 );
               })}
-
-              {regions.length > 0 && (
-                <TouchableOpacity
-                  style={styles.regionChip}
-                  onPress={() => setRegionModalVisible(true)}
-                >
-                  <Text style={styles.regionChipText} numberOfLines={1}>
-                    {activeRegion === 'all' ? 'All regions' : activeRegion}
-                  </Text>
-                  <Ionicons name="chevron-down" size={14} color="#333" />
-                </TouchableOpacity>
-              )}
             </ScrollView>
+
+            {regions.length > 0 && (
+              <TouchableOpacity
+                style={styles.regionChipRow}
+                onPress={() => setRegionModalVisible(true)}
+              >
+                <Ionicons name="location-outline" size={14} color="#333" />
+                <Text style={styles.regionChipText} numberOfLines={1}>
+                  {activeRegion === 'all' ? 'All regions' : activeRegion}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color="#333" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {filteredItems.length === 0 ? (
@@ -636,16 +637,17 @@ const styles = StyleSheet.create({
   categoryPillActive: { backgroundColor: '#f5a53d' },
   categoryPillText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
   categoryPillTextActive: { color: 'white' },
-  regionChip: {
+  regionChipRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     backgroundColor: '#F3F4F6',
     borderRadius: 18,
     paddingHorizontal: 14,
     height: 34,
-    marginLeft: 2,
+    marginTop: 8,
   },
-  regionChipText: { fontSize: 12, fontWeight: '600', color: '#333', marginRight: 4, maxWidth: 110 },
+  regionChipText: { fontSize: 12, fontWeight: '600', color: '#333', marginHorizontal: 6, maxWidth: 160 },
   regionOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', paddingHorizontal: 40 },
   regionMenu: { backgroundColor: 'white', borderRadius: 14, paddingVertical: 6 },
   regionOption: { paddingVertical: 12, paddingHorizontal: 18 },
