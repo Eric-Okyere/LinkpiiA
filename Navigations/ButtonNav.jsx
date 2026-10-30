@@ -9,6 +9,7 @@ import DrawerContent from '../src/components/Drawer/DrawerContent';
 import CarNav from './CarNav';
 import RentHome from '../src/Hire/RentHome';
 import BuildingNavs from './BuildingNavs';
+import theme from '../src/Styles/designSystem';
 
 
 const { width } = Dimensions.get('window');
@@ -39,7 +40,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 activeOpacity={0.8}
               >
                 <View style={styles.centerIn}>
-                <AntDesign name="plus" size={20} color="#fff" />
+                <AntDesign name="plus" size={20} color={theme.colors.surface} />
                 </View>
               </TouchableOpacity>
             );
@@ -72,18 +73,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
               onPress={onPress}
               activeOpacity={0.7}
             >
-              <IconComponent
-                name={iconName}
-                size={22}
-                color={isFocused ? "#f5a53d" : "black"}
-              />
-              <Text
-                style={{
-                  fontSize: 12,
-                  marginTop: 4,
-                  color: isFocused ? "#f5a53d" : "black",
-                }}
-              >
+              <View style={[styles.iconBubble, isFocused && styles.iconBubbleActive]}>
+                <IconComponent
+                  name={iconName}
+                  size={20}
+                  color={isFocused ? theme.colors.brand600 : theme.colors.ink500}
+                />
+              </View>
+              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
                 {label}
               </Text>
             </TouchableOpacity>
@@ -153,12 +150,14 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     height: 75,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    elevation: 10,
+    paddingHorizontal: theme.spacing.xl,
+    borderTopLeftRadius: theme.radius.xl,
+    borderTopRightRadius: theme.radius.xl,
+    ...theme.shadow.floating,
   },
 
   tabItem: {
@@ -166,30 +165,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  iconBubble: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  iconBubbleActive: {
+    backgroundColor: theme.colors.brand100,
+  },
+
+  tabLabel: {
+    fontSize: 11,
+    marginTop: 2,
+    fontWeight: '600',
+    color: theme.colors.ink500,
+  },
+
+  tabLabelActive: {
+    color: theme.colors.brand600,
+    fontWeight: '700',
+  },
+
   centerButton: {
     position: 'absolute',
     top: -20,
     left: width / 2,
     transform: [{ translateX: -32.5 }],
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     width: 55,
     height: 55,
-    borderRadius: 32.5,
+    borderRadius: theme.radius.pill,
     justifyContent: 'center',
     alignItems: 'center',
-   
+    ...theme.shadow.floating,
   },
   centerIn:{
     alignItems: 'center', 
     width: 40,
     height: 40,
-    borderRadius: 25,
+    borderRadius: theme.radius.pill,
     justifyContent: 'center', 
-    backgroundColor:"#f5a53d",
-     elevation: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    backgroundColor: theme.colors.brand600,
   }
 });
