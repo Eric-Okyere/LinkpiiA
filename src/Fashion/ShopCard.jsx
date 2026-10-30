@@ -105,4 +105,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ShopCard;
+export default React.memo(ShopCard);

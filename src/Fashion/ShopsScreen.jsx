@@ -126,13 +126,29 @@ const ProductScreen = (props) => {
     }
   };
 
-  const renderProductItem = ({ item }) => (
-    <ShopCard
-      item={item}
-      navigation={navigation}
-      setPressLoading={setPressLoading}
-      setCelebrate={setCelebrate}
-    />
+  // Memoized so FlatList's `data` prop keeps a stable reference across
+  // re-renders (e.g. search/category/region filter changes that don't
+  // affect pagination) - a fresh .slice() array every render was the
+  // main cause of the 'VirtualizedList: large list is slow to update'
+  // warning, since FlatList had to treat every render as a full data change.
+  const paginatedProducts = useMemo(
+    () => visibleProducts.slice(0, displayedProducts),
+    [visibleProducts, displayedProducts]
+  );
+
+  // useCallback so renderItem keeps a stable reference too - paired with
+  // ShopCard now wrapped in React.memo, this lets FlatList actually skip
+  // re-rendering cards whose own item/props haven't changed.
+  const renderProductItem = useCallback(
+    ({ item }) => (
+      <ShopCard
+        item={item}
+        navigation={navigation}
+        setPressLoading={setPressLoading}
+        setCelebrate={setCelebrate}
+      />
+    ),
+    [navigation, setPressLoading, setCelebrate]
   );
 
 
@@ -219,7 +235,7 @@ const ProductScreen = (props) => {
                   )}
                 </View>
                 <FlatList
-                  data={visibleProducts.slice(0, displayedProducts)}
+                  data={paginatedProducts}
                   renderItem={renderProductItem}
                   keyExtractor={(item) => item._id}
                   numColumns={3}
