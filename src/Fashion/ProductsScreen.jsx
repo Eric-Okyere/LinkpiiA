@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import {
   View,
   ActivityIndicator,
@@ -10,6 +10,8 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EvilIcons, Ionicons } from "@expo/vector-icons";
@@ -37,6 +39,8 @@ const ProductScreen = (props) => {
   const [displayedProducts, setDisplayedProducts] = useState(20);
   const [showSearch, setShowSearch] = useState(false);
   const [input, setInput] = useState({ name: "", region: "" });
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [regionModalVisible, setRegionModalVisible] = useState(false);
   const [pressLoading, setPressLoading] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
 
@@ -45,6 +49,7 @@ const ProductScreen = (props) => {
       setLoading(true);
       setShowSearch(false);
       setInput({ name: "", region: "" });
+      setSelectedRegion("all");
 
       const fetchData = async () => {
         try {
@@ -94,6 +99,22 @@ const ProductScreen = (props) => {
 
     setProductsFiltered(filtered);
   }, [input, products]);
+
+  // Distinct regions present in the loaded listings, for the region
+  // dropdown - mirrors the website's Home.jsx (same computation, same
+  // "All regions" default).
+  const regions = useMemo(
+    () => Array.from(new Set(products.map((p) => p.region).filter(Boolean))).sort(),
+    [products]
+  );
+
+  const visibleProducts = useMemo(
+    () =>
+      selectedRegion === "all"
+        ? productCtg
+        : productCtg.filter((item) => item.region === selectedRegion),
+    [productCtg, selectedRegion]
+  );
 
   const changeCtg = (ctg) => {
     if (ctg === "all") {
@@ -175,19 +196,34 @@ const ProductScreen = (props) => {
               <SearchProducts productFiltered={productFiltered} />
             ) : (
               <View style={{ flex: 1 }}>
-                <Categories
-                  categoryFilter={changeCtg}
-                  categories={categories}
-                />
+                <View style={styles.filterRow}>
+                  <View style={styles.categoriesWrap}>
+                    <Categories
+                      categoryFilter={changeCtg}
+                      categories={categories}
+                    />
+                  </View>
+                  {regions.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.regionChip}
+                      onPress={() => setRegionModalVisible(true)}
+                    >
+                      <Text style={styles.regionChipText} numberOfLines={1}>
+                        {selectedRegion === "all" ? "All regions" : selectedRegion}
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color="#333" />
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <FlatList
-                  data={productCtg.slice(0, displayedProducts)}
+                  data={visibleProducts.slice(0, displayedProducts)}
                   renderItem={renderProductItem}
                   keyExtractor={(item) => item._id}
                   numColumns={3}
                   onEndReached={() => setDisplayedProducts(prev => prev + 20)}
                   onEndReachedThreshold={0.5}
                   ListFooterComponent={() => 
-                    displayedProducts < productCtg.length ? (
+                    displayedProducts < visibleProducts.length ? (
                       <ActivityIndicator style={{ marginVertical: 20 }} size="small" color="#f5a53d" />
                     ) : null
                   }
@@ -198,6 +234,40 @@ const ProductScreen = (props) => {
                 />
               </View>
             )}
+
+            <Modal transparent visible={regionModalVisible} animationType="fade">
+              <TouchableOpacity
+                style={styles.regionOverlay}
+                activeOpacity={1}
+                onPress={() => setRegionModalVisible(false)}
+              >
+                <View style={styles.regionMenu}>
+                  <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+                    <TouchableOpacity
+                      style={styles.regionOption}
+                      onPress={() => {
+                        setSelectedRegion("all");
+                        setRegionModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.regionOptionText}>All regions</Text>
+                    </TouchableOpacity>
+                    {regions.map((region) => (
+                      <TouchableOpacity
+                        key={region}
+                        style={styles.regionOption}
+                        onPress={() => {
+                          setSelectedRegion(region);
+                          setRegionModalVisible(false);
+                        }}
+                      >
+                        <Text style={styles.regionOptionText}>{region}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
           </View>
         </KeyboardAvoidingView>
       )}
@@ -235,11 +305,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    bottom: 60,
   },
   headerTopRow: {
     alignSelf: "flex-end",
-    bottom: 30,
     right: 16,
   },
   logoText: {
@@ -252,7 +320,6 @@ const styles = StyleSheet.create({
     padding: 4,
     justifyContent: "center",
     alignItems: "center",
-    top:14
   },
   searchBarWrapper: {
     flexDirection: "row",
@@ -279,6 +346,49 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 4,
     paddingTop: 10,
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 12,
+  },
+  categoriesWrap: {
+    flex: 1,
+  },
+  regionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 32,
+    marginLeft: 8,
+    maxWidth: 140,
+  },
+  regionChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#333",
+    marginRight: 4,
+  },
+  regionOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  regionMenu: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 6,
+  },
+  regionOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+  },
+  regionOptionText: {
+    fontSize: 15,
+    color: "#222",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
