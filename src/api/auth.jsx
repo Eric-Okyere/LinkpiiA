@@ -40,6 +40,46 @@ export const signin = async( values) =>{
      }
 }
 
+export const verifyEmailCode = async (email, code) =>{
+    try {
+        const {data} = await axios.post(`${baseURL}verify-email-code`, {email, code})
+        return data
+
+     } catch (error) {
+       return catchError(error)
+     }
+}
+
+export const resendVerificationCode = async email =>{
+    try {
+        const {data} = await axios.post(`${baseURL}resend-verification-code`, {email})
+        return data
+
+     } catch (error) {
+       return catchError(error)
+     }
+}
+
+export const verifyLoginCode = async (email, code) =>{
+    try {
+        const {data} = await axios.post(`${baseURL}verify-login-code`, {email, code})
+        return data
+
+     } catch (error) {
+       return catchError(error)
+     }
+}
+
+export const resendLoginCode = async email =>{
+    try {
+        const {data} = await axios.post(`${baseURL}resend-login-code`, {email})
+        return data
+
+     } catch (error) {
+       return catchError(error)
+     }
+}
+
 export const forgetPassword = async email =>{
     try {
         const {data} = await axios.post(`${baseURL}forgot-password`, {email})

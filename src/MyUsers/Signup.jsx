@@ -15,13 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import * as yup from 'yup';
 import AppNotification from '../AppNotification';
-import { signup, updateNotification } from '../api/auth';
+import { signup, verifyEmailCode, resendVerificationCode, updateNotification } from '../api/auth';
 import { useDispatch, useSelector } from 'react-redux';
 import { signUp } from '../Redux/actions';
 import baseURL from '../../assets/common/BaseUrl';
 import axios from 'axios';
 import AuthField from '../components/AuthField';
 import PhoneField from '../components/PhoneField';
+import VerifyCodeCard from '../components/VerifyCodeCard';
 
 const GOLD = '#f5a53d';
 
@@ -60,6 +61,9 @@ const Signup = ({ navigation }) => {
   const [agreeLoading, setAgreeLoading] = useState(false);
   const [eulaVisible, setEulaVisible] = useState(false);
   const [phoneCountry, setPhoneCountry] = useState({ code: 'GH', callingCode: '233' });
+  // "form" (filling the signup fields) -> EULA modal -> "verify" (email code entry)
+  const [step, setStep] = useState('form');
+  const [signupEmail, setSignupEmail] = useState('');
   const dispatch = useDispatch();
   const userState = useSelector((state) => state.user);
 
@@ -97,6 +101,7 @@ const Signup = ({ navigation }) => {
     } else {
       formikActions.resetForm();
       setPhoneCountry({ code: 'GH', callingCode: '233' });
+      setSignupEmail(res.user.email);
       dispatch(signUp(res.user.id));
       setEulaVisible(true);
     }
@@ -108,7 +113,7 @@ const Signup = ({ navigation }) => {
       const response = await axios.put(`${baseURL}eula/${userState}/eula`);
       if (response.status === 200) {
         setEulaVisible(false);
-        navigation.navigate('login');
+        setStep('verify');
       } else {
         setMessage({ text: 'Failed to accept EULA', type: 'error' });
       }
@@ -126,6 +131,30 @@ const Signup = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
+        {step === 'verify' ? (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.brandWrap}>
+              <View style={styles.logoRing}>
+                <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+              </View>
+            </View>
+
+            <VerifyCodeCard
+              title="Verify your email"
+              description={`We sent a 6-digit code to ${signupEmail}. Enter it below to activate your account.`}
+              verifyLabel="Verify email"
+              onVerify={(code) => verifyEmailCode(signupEmail, code)}
+              onResend={() => resendVerificationCode(signupEmail)}
+              onVerified={() => {
+                setTimeout(() => navigation.navigate('login'), 1500);
+              }}
+            />
+          </ScrollView>
+        ) : (
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
@@ -263,6 +292,7 @@ const Signup = ({ navigation }) => {
             </ScrollView>
           )}
         </Formik>
+        )}
 
         <Modal animationType="slide" transparent visible={eulaVisible}>
           <View style={styles.modalView}>

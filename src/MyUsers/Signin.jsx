@@ -13,13 +13,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import * as yup from 'yup';
-import { signin, updateNotification } from '../api/auth';
+import {
+  signin,
+  verifyEmailCode,
+  resendVerificationCode,
+  verifyLoginCode,
+  resendLoginCode,
+  updateNotification,
+} from '../api/auth';
 import { useDispatch, useSelector } from 'react-redux';
 import { loggedIn } from '../Redux/actions';
 import { useNavigation } from '@react-navigation/native';
 import * as SecureStore from 'expo-secure-store';
 import GoogleSigninBut from './GoogleSigninBut';
 import AuthField from '../components/AuthField';
+import VerifyCodeCard from '../components/VerifyCodeCard';
 
 const GOLD = '#f5a53d';
 
@@ -45,6 +53,12 @@ const Login = () => {
   const login = useSelector((state) => state.login);
   const [googleLoading, setGoogleLoading] = useState(false);
   const passwordRef = useRef(null);
+  // "form" -> (if the account needs it) "verify-email" or "verify-login" ->
+  // back into handleLogin once verified. Same two-step email-code flow
+  // already live on the website.
+  const [step, setStep] = useState('form');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [pendingCredentials, setPendingCredentials] = useState(null);
 
   useEffect(() => {
     const checkLogin = () => {
@@ -60,9 +74,26 @@ const Login = () => {
       setLoading(true);
       setErrorMessage('');
       const res = await signin(values);
-      if (!res.success) {
+      if (res.requiresEmailVerification) {
+        // Account exists and the password matched, but the email was never
+        // verified - same check the backend runs on the website. Hold on
+        // to the credentials so we can finish logging in automatically
+        // once the code is confirmed.
+        setPendingCredentials(values);
+        setLoginEmail(res.email || values.email);
+        setStep('verify-email');
+      } else if (res.requiresLoginVerification) {
+        // Email is verified, but this is the account's very first
+        // successful login - the backend emailed a separate one-time code
+        // to confirm it.
+        setLoginEmail(res.email || values.email);
+        setStep('verify-login');
+      } else if (!res.success) {
         setErrorMessage(res.error);
       } else {
+        if (res.token) {
+          await SecureStore.setItemAsync('authToken', res.token);
+        }
         navigation.navigate('welcome');
         dispatch(loggedIn(res.user.id));
       }
@@ -72,6 +103,32 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Email verified mid-login: re-run the original login attempt so the
+  // user doesn't have to retype their password (matches the website).
+  const handleEmailVerifiedDuringLogin = () => {
+    if (pendingCredentials) {
+      setTimeout(() => {
+        handleLogin(pendingCredentials);
+      }, 800);
+    } else {
+      setStep('form');
+    }
+  };
+
+  // First-login code confirmed: this response already carries the real
+  // session token, so finish logging in directly.
+  const handleLoginCodeVerified = async (res) => {
+    if (res.token) {
+      try {
+        await SecureStore.setItemAsync('authToken', res.token);
+      } catch (error) {
+        console.error('Error saving token:', error);
+      }
+    }
+    navigation.navigate('welcome');
+    dispatch(loggedIn(res.user.id));
   };
 
   const handleGoogleLoginSuccess = async (user, token) => {
@@ -108,10 +165,33 @@ const Login = () => {
             <View style={styles.logoRing}>
               <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
             </View>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to continue to Linkpii</Text>
+            {step === 'form' && (
+              <>
+                <Text style={styles.title}>Welcome back</Text>
+                <Text style={styles.subtitle}>Sign in to continue to Linkpii</Text>
+              </>
+            )}
           </View>
 
+          {step === 'verify-email' ? (
+            <VerifyCodeCard
+              title="Verify your email"
+              description={`Your account isn't verified yet, so we've sent a fresh 6-digit code to ${loginEmail}. Enter it below to verify your account and finish logging in.`}
+              verifyLabel="Verify and log in"
+              onVerify={(code) => verifyEmailCode(loginEmail, code)}
+              onResend={() => resendVerificationCode(loginEmail)}
+              onVerified={handleEmailVerifiedDuringLogin}
+            />
+          ) : step === 'verify-login' ? (
+            <VerifyCodeCard
+              title="Confirm it's you"
+              description={`This is your first login, so for security we sent a 6-digit code to ${loginEmail}. Enter it below to finish logging in.`}
+              verifyLabel="Verify and log in"
+              onVerify={(code) => verifyLoginCode(loginEmail, code)}
+              onResend={() => resendLoginCode(loginEmail)}
+              onVerified={handleLoginCodeVerified}
+            />
+          ) : (
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
@@ -188,13 +268,16 @@ const Login = () => {
               </View>
             )}
           </Formik>
+          )}
 
-          <View style={styles.signupRow}>
-            <Text style={styles.signupPrompt}>Don't have an account?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('signup')}>
-              <Text style={styles.signupLink}>Create one</Text>
-            </TouchableOpacity>
-          </View>
+          {step === 'form' && (
+            <View style={styles.signupRow}>
+              <Text style={styles.signupPrompt}>Don't have an account?</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('signup')}>
+                <Text style={styles.signupLink}>Create one</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
