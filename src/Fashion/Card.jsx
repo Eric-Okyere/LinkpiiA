@@ -10,6 +10,7 @@ import {
 import baseURL from "../../assets/common/BaseUrl";
 import LikeButton from "../components/Drawer/LikeButton";
 import useSaveToggle from "../hooks/useSaveToggle";
+import theme from "../Styles/designSystem";
 
 const Card = ({
   item,
@@ -124,16 +125,10 @@ const styles = StyleSheet.create({
   cardContainer: {
     flex: 1,
     margin: 6,
-    backgroundColor: "#f2f2f2",
-    borderRadius: 10,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     padding: 8,
-    // Native shadow for Android
-    elevation: 4,
-    // Shadow for iOS
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    ...theme.shadow.card,
   },
   imageWrapper: { 
     position: "relative" 
@@ -141,7 +136,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: "100%",
     aspectRatio: 1,
-    borderRadius: 8
+    borderRadius: theme.radius.sm
   },
   conditionBadge: {
     position: "absolute",
@@ -150,10 +145,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.92)",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 5
+    borderRadius: theme.radius.sm
   },
   conditionText: {
-    color: "#333",
+    color: theme.colors.ink700,
     fontSize: 9,
     fontWeight: "700",
     textTransform: "capitalize"
@@ -161,12 +156,12 @@ const styles = StyleSheet.create({
   discountBadge: {
     position: "absolute",
     bottom: 0,
-    backgroundColor: "black",
+    backgroundColor: theme.colors.ink900,
     paddingHorizontal: 6,
-    borderRadius: 5
+    borderRadius: theme.radius.sm
   },
   discountText: {
-    color: "#f5a53d",
+    color: theme.colors.brand500,
     fontSize: 10,
     fontWeight: "bold"
   },
@@ -179,11 +174,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 13,
     marginTop: 6,
-    color: "#333"
+    color: theme.colors.ink900
   },
   callForPrice: { 
     fontSize: 12, 
-    color: "#f5a53d", 
+    color: theme.colors.brand700, 
     fontWeight: "bold" 
   },
   priceRow: { 
@@ -192,13 +187,13 @@ const styles = StyleSheet.create({
   },
   originalPrice: {
     textDecorationLine: "line-through",
-    color: "gray",
+    color: theme.colors.ink500,
     fontSize: 10,
     marginRight: 6
   },
   discountedPrice: {
     fontSize: 12,
-    color: "#f5a53d",
+    color: theme.colors.brand700,
     fontWeight: "bold"
   },
   locationWrapper: {
@@ -208,7 +203,7 @@ const styles = StyleSheet.create({
   },
   locationText: { 
     fontSize: 9, 
-    color: "#555" 
+    color: theme.colors.ink500 
   }
 });
 

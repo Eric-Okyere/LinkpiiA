@@ -3,6 +3,7 @@ import { Pressable, View, Text, Image, StyleSheet } from "react-native";
 import baseURL from "../../assets/common/BaseUrl";
 import LikeButton from "../components/Drawer/LikeButton";
 import useSaveToggle from "../hooks/useSaveToggle";
+import theme from "../Styles/designSystem";
 
 /**
  * Shop listing card, extracted out of ShopsScreen.jsx's inline renderItem
@@ -66,10 +67,10 @@ const styles = StyleSheet.create({
   cardContainer: {
     flex: 1,
     margin: 6,
-    backgroundColor: "#f2f2f2",
-    borderRadius: 10,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     padding: 8,
-    elevation: 4,
+    ...theme.shadow.card,
   },
   imageWrapper: {
     position: "relative",
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: "100%",
     aspectRatio: 1,
-    borderRadius: 8,
+    borderRadius: theme.radius.sm,
   },
   likeButtonWrapper: {
     position: "absolute",
@@ -88,10 +89,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 13,
     marginTop: 6,
+    color: theme.colors.ink900,
   },
   shopDescription: {
     fontSize: 12,
-    color: "#f5a53d",
+    color: theme.colors.ink500,
     marginTop: 2,
   },
   locationWrapper: {
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 9,
-    color: "#555",
+    color: theme.colors.ink500,
   },
 });
 

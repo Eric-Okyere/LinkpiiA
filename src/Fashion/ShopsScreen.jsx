@@ -24,6 +24,7 @@ import SearchShop from "./SearchShop";
 import ShopCats from "./ShopCats";
 import LikeButton from "../components/Drawer/LikeButton";
 import ShopCard from "./ShopCard";
+import theme from "../Styles/designSystem";
 
 const { width } = Dimensions.get("window");
 
@@ -156,7 +157,7 @@ const ProductScreen = (props) => {
     <View style={[styles.mainWrapper, { paddingTop: insets.top }]}>
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#f5a53d" />
+          <ActivityIndicator size="large" color={theme.colors.brand600} />
         </View>
       ) : (
         <KeyboardAvoidingView 
@@ -176,7 +177,7 @@ const ProductScreen = (props) => {
                     }}
                     style={styles.iconButton}
                   >
-                    <Ionicons name="close-outline" size={28} color="black" />
+                    <Ionicons name="close-outline" size={28} color={theme.colors.ink700} />
                   </TouchableOpacity>
                 }
 
@@ -185,7 +186,7 @@ const ProductScreen = (props) => {
                     onPress={() => setShowSearch(true)}
                     style={styles.iconButton}
                   >
-                    <EvilIcons name="search" size={34} color="black" />
+                    <EvilIcons name="search" size={34} color={theme.colors.ink700} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -197,14 +198,14 @@ const ProductScreen = (props) => {
                     onChangeText={(text) => setInput((prev) => ({ ...prev, name: text }))}
                     value={input.name}
                     placeholder="Search name..."
-                    placeholderTextColor="#888"
+                    placeholderTextColor={theme.colors.ink500}
                     style={[styles.searchInput, styles.inputLeft]}
                   />
                   <TextInput
                     onChangeText={(text) => setInput((prev) => ({ ...prev, region: text }))}
                     value={input.region}
                     placeholder="Location..."
-                    placeholderTextColor="#888"
+                    placeholderTextColor={theme.colors.ink500}
                     style={[styles.searchInput, styles.inputRight]}
                   />
                 </View>
@@ -230,7 +231,7 @@ const ProductScreen = (props) => {
                       <Text style={styles.regionChipText} numberOfLines={1}>
                         {selectedRegion === "all" ? "All regions" : selectedRegion}
                       </Text>
-                      <Ionicons name="chevron-down" size={14} color="#333" />
+                      <Ionicons name="chevron-down" size={14} color={theme.colors.ink700} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -243,7 +244,7 @@ const ProductScreen = (props) => {
                   onEndReachedThreshold={0.5}
                   ListFooterComponent={() => 
                     displayedProducts < visibleProducts.length ? (
-                      <ActivityIndicator style={{ marginVertical: 20 }} size="small" color="#f5a53d" />
+                      <ActivityIndicator style={{ marginVertical: 20 }} size="small" color={theme.colors.brand600} />
                     ) : null
                   }
                   contentContainerStyle={[
@@ -294,7 +295,7 @@ const ProductScreen = (props) => {
       {/* OVERLAYS */}
       {pressLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={theme.colors.surface} />
         </View>
       )}
 
@@ -315,7 +316,7 @@ export default ProductScreen;
 const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: theme.colors.background,
   },
   loaderContainer: {
     flex: 1,
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 26,
     fontWeight: "900",
-    color: "#000",
+    color: theme.colors.ink900,
     letterSpacing: -0.8,
   },
   iconButton: {
@@ -345,22 +346,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     bottom: 12,
     paddingHorizontal: 16,
+    gap: 10,
   },
   searchInput: {
-    height: 44,
-    borderRadius: 12,
+    height: 46,
+    borderRadius: theme.radius.md,
     paddingHorizontal: 15,
     fontSize: 14,
-    color: "#000",
-    top:4
+    color: theme.colors.ink900,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   inputLeft: {
     width: "48%",
-    backgroundColor: "#F2F2F2",
+    backgroundColor: theme.colors.surface,
   },
   inputRight: {
     width: "48%",
-    backgroundColor: "#E8E8E8",
+    backgroundColor: theme.colors.surface,
   },
   listContent: {
     paddingHorizontal: 4,
@@ -377,8 +380,8 @@ const styles = StyleSheet.create({
   regionChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F2F2F2",
-    borderRadius: 16,
+    backgroundColor: theme.colors.ink100,
+    borderRadius: theme.radius.pill,
     paddingHorizontal: 12,
     height: 32,
     marginLeft: 8,
@@ -387,19 +390,20 @@ const styles = StyleSheet.create({
   regionChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#333",
+    color: theme.colors.ink700,
     marginRight: 4,
   },
   regionOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: theme.colors.overlay,
     justifyContent: "center",
     paddingHorizontal: 40,
   },
   regionMenu: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     paddingVertical: 6,
+    ...theme.shadow.floating,
   },
   regionOption: {
     paddingVertical: 12,
@@ -407,11 +411,11 @@ const styles = StyleSheet.create({
   },
   regionOptionText: {
     fontSize: 15,
-    color: "#222",
+    color: theme.colors.ink900,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: theme.colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 9999,

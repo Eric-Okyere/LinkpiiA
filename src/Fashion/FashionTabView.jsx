@@ -12,6 +12,7 @@ import ProductScreen from './ProductsScreen';
 import ShopScreen from "./ShopsScreen"
 import Services from './Services';
 import Agric from '../../Products/ProductsScreen';
+import theme from '../Styles/designSystem';
 
 export default function DropdownTabs() {
   const [selected, setSelected] = useState('Buy');
@@ -54,7 +55,7 @@ export default function DropdownTabs() {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       
       {/* ===== DROPDOWN HEADER ===== */}
       <View style={styles.header}>
@@ -77,7 +78,7 @@ export default function DropdownTabs() {
           onPress={() => setVisible(true)}
         >
           <Text style={styles.dropdownText}>{selected}</Text>
-          <FontAwesome name="chevron-down" size={16} />
+          <FontAwesome name="chevron-down" size={14} color={theme.colors.ink700} />
         </TouchableOpacity>
       </View>
 
@@ -94,18 +95,24 @@ export default function DropdownTabs() {
           activeOpacity={1}
         >
           <View style={styles.dropdownMenu}>
-            {options.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setSelected(item);
-                  setVisible(false);
-                }}
-              >
-                <Text style={{ fontSize: 16 }}>{item}</Text>
-              </TouchableOpacity>
-            ))}
+            {options.map((item) => {
+              const isActive = item === selected;
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelected(item);
+                    setVisible(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, isActive && styles.dropdownItemTextActive]}>
+                    {item}
+                  </Text>
+                  {isActive && <FontAwesome name="check" size={14} color={theme.colors.brand600} />}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -115,41 +122,58 @@ export default function DropdownTabs() {
 
 const styles = StyleSheet.create({
   header: {
+    backgroundColor: theme.colors.surface,
     paddingTop: 30,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    flexDirection: 'row'
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.md,
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: theme.colors.ink100,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.pill,
     alignSelf: 'flex-start',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    left:20
+    left: 20,
+    gap: 8,
   },
   dropdownText: {
-    fontSize: 16,
-    marginRight: 8,
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.ink900,
+    marginRight: 4,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'flex-start',
     paddingTop: 100,
   },
   dropdownMenu: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 20,
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing.sm,
+    ...theme.shadow.floating,
   },
   dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    color: theme.colors.ink700,
+    fontWeight: '500',
+  },
+  dropdownItemTextActive: {
+    color: theme.colors.brand700,
+    fontWeight: '700',
   },
 });

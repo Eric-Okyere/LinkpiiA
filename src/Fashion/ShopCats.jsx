@@ -7,6 +7,7 @@ import {
   Text, 
   StyleSheet 
 } from 'react-native';
+import theme from '../Styles/designSystem';
 
 const ShopCats = ({ categories, categoryFilter }) => {
     const [selectedCategory, setSelectedCategory] = useState('all');
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     container: {
         height: 60,
         marginBottom: 16,
-        marginTop:1, // Matching your previous 'bottom: 16' logic
+        marginTop: 1, // Matching your previous 'bottom: 16' logic
     },
     scrollContent: {
         paddingLeft: 12,
@@ -83,36 +84,36 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     allButton: {
-        backgroundColor: "black",
+        backgroundColor: theme.colors.ink900,
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: theme.radius.pill,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
     },
     selectedAll: {
-        borderWidth: 2,
-        borderColor: '#f5a53d',
+        backgroundColor: theme.colors.brand600,
     },
     allText: {
-        color: "white",
+        color: theme.colors.surface,
         fontSize: 14,
         fontWeight: 'bold',
     },
     catButton: {
         height: 40,
         marginRight: 10,
-        borderColor: "#f5a53d",
+        borderColor: theme.colors.border,
         borderWidth: 1,
-        borderRadius: 26,
+        borderRadius: theme.radius.pill,
         paddingHorizontal: 4,
         justifyContent: 'center',
-        backgroundColor: 'white',
+        backgroundColor: theme.colors.surface,
     },
     selectedCat: {
-        backgroundColor: '#FFF7ED', // Light orange tint for selection
-        borderWidth: 2,
+        backgroundColor: theme.colors.brand100,
+        borderColor: theme.colors.brand600,
+        borderWidth: 1.5,
     },
     catInner: {
         flexDirection: "row",
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginLeft: 6,
         paddingRight: 6,
-        color: '#333',
+        color: theme.colors.ink700,
     },
 });
 
