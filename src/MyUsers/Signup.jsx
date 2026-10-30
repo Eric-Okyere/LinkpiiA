@@ -21,6 +21,7 @@ import { signUp } from '../Redux/actions';
 import baseURL from '../../assets/common/BaseUrl';
 import axios from 'axios';
 import AuthField from '../components/AuthField';
+import PhoneField from '../components/PhoneField';
 
 const GOLD = '#f5a53d';
 
@@ -37,12 +38,15 @@ const validationSchema = yup.object({
   name: yup.string().trim().required('Please input your first name!'),
   lastname: yup.string().trim().required('Please input your last name!'),
   email: yup.string().trim().email('Invalid email').required('Please input your email!'),
+  // Local number only (country code is selected separately and combined in
+  // handleSignup) - the leading trunk "0" is stripped as the user types,
+  // same convention as the advert/shop post forms, so the validated range
+  // is shorter than the old "whole number with 0" check.
   phone: yup
     .string()
     .trim()
     .required('Please input your phone number!')
-    .min(10, 'Phone number must be at least 10 digits')
-    .max(15, 'Phone number must be at most 15 digits'),
+    .matches(/^[0-9]{6,12}$/, 'Enter a valid phone number'),
   password: yup.string().trim().min(4, 'Your password is too short!').required('Please input your password!'),
   confirmPassword: yup
     .string()
@@ -55,6 +59,7 @@ const Signup = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [agreeLoading, setAgreeLoading] = useState(false);
   const [eulaVisible, setEulaVisible] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState({ code: 'GH', callingCode: '233' });
   const dispatch = useDispatch();
   const userState = useSelector((state) => state.user);
 
@@ -83,13 +88,15 @@ const Signup = ({ navigation }) => {
       return updateNotification(setMessage, 'Your input contains inappropriate language.');
     }
 
-    const res = await signup(values);
+    const payload = { ...values, phone: `+${phoneCountry.callingCode}${values.phone}` };
+    const res = await signup(payload);
     formikActions.setSubmitting(false);
     setLoading(false);
     if (!res.success) {
       return updateNotification(setMessage, res.message);
     } else {
       formikActions.resetForm();
+      setPhoneCountry({ code: 'GH', callingCode: '233' });
       dispatch(signUp(res.user.id));
       setEulaVisible(true);
     }
@@ -187,17 +194,16 @@ const Signup = ({ navigation }) => {
                   blurOnSubmit={false}
                 />
 
-                <AuthField
+                <PhoneField
                   inputRef={phoneRef}
-                  icon="phone-iphone"
                   placeholder="Phone number"
                   value={values.phone}
                   onChangeText={handleChange('phone')}
                   onBlur={handleBlur('phone')}
                   error={errors.phone}
                   touched={touched.phone}
-                  keyboardType="numeric"
-                  autoCapitalize="none"
+                  country={phoneCountry}
+                  onSelectCountry={setPhoneCountry}
                   returnKeyType="next"
                   onSubmitEditing={() => passwordRef.current && passwordRef.current.focus()}
                   blurOnSubmit={false}
