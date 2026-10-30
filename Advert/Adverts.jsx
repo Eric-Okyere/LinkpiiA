@@ -33,6 +33,7 @@ import baseURL from '../assets/common/BaseUrl';
 import LikeButton from '../src/components/Drawer/LikeButton';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
+import HomeCarousel from '../src/components/HomeCarousel';
 
 const { height, width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 3; 
@@ -438,7 +439,7 @@ export default function Adverts() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadData(false); }} tintColor="#f5a53d" />}
         >
-          <CustomMediaCarousel data={items} setSelectedItem={setSelectedItem} setIsModalVisible={setIsModalVisible} />
+          <HomeCarousel />
 
           <View style={styles.filterSection}>
             <View style={styles.searchBox}>
