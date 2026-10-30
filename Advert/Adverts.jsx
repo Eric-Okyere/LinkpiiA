@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Dimensions,
   Text,
@@ -14,6 +14,7 @@ import {
   Alert,
   RefreshControl,
   BackHandler,
+  TextInput,
 } from 'react-native';
 import { 
   Feather, 
@@ -35,6 +36,16 @@ import axios from 'axios';
 
 const { height, width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48) / 3; 
+
+// Mirrors the website's Home.jsx categoryFilters - same keys as the
+// item.type tags already assigned to the merged fashion/building/shop
+// list below, so filtering is a straight equality check.
+const CATEGORY_FILTERS = [
+  { key: 'all', label: 'Everything' },
+  { key: 'fashion', label: 'Products' },
+  { key: 'shop', label: 'Shops' },
+  { key: 'building', label: 'Housing' },
+];
 
 // --- UTILS ---
 const fetchWithTimeout = (url, options, timeout = 10000) => {
@@ -119,10 +130,14 @@ export default function Adverts() {
   const [hasError, setHasError] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [columns, setColumns] = useState([[], [], []]);
+  const [combinedItems, setCombinedItems] = useState([]);
   const [celebrate, setCelebrate] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
   const [likedProducts, setLikedProducts] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeRegion, setActiveRegion] = useState('all');
+  const [regionModalVisible, setRegionModalVisible] = useState(false);
   const dispatch = useDispatch();
   const userId = useSelector((state) => state.user);
   const [userData, setUserData] = useState(null);
@@ -159,10 +174,8 @@ export default function Adverts() {
         ...(Array.isArray(shop) ? shop : []).map(i => ({ ...i, type: 'shop' })),
       ];
 
-      const cols = [[], [], []];
-      combined.forEach((item, idx) => cols[idx % 3].push(item));
       setItems(Array.isArray(adverts) ? adverts : []);
-      setColumns(cols);
+      setCombinedItems(combined);
       setHasError(false);
     } catch (e) {
       setHasError(true);
@@ -173,6 +186,30 @@ export default function Adverts() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadData(true); }, [loadData]));
+
+  // Distinct regions present in the loaded listings, for the region
+  // dropdown - mirrors the website's Home.jsx (same computation, same
+  // "All regions" default).
+  const regions = useMemo(
+    () => Array.from(new Set(combinedItems.map((p) => p.region).filter(Boolean))).sort(),
+    [combinedItems]
+  );
+
+  const filteredItems = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return combinedItems.filter((item) => {
+      const matchesCategory = activeCategory === 'all' || item.type === activeCategory;
+      const matchesRegion = activeRegion === 'all' || item.region === activeRegion;
+      const matchesSearch = !term || (item.name || '').toLowerCase().includes(term);
+      return matchesCategory && matchesRegion && matchesSearch;
+    });
+  }, [combinedItems, activeCategory, activeRegion, searchTerm]);
+
+  const columns = useMemo(() => {
+    const cols = [[], [], []];
+    filteredItems.forEach((item, idx) => cols[idx % 3].push(item));
+    return cols;
+  }, [filteredItems]);
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -402,17 +439,108 @@ export default function Adverts() {
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadData(false); }} tintColor="#f5a53d" />}
         >
           <CustomMediaCarousel data={items} setSelectedItem={setSelectedItem} setIsModalVisible={setIsModalVisible} />
-          <View style={styles.masonryContainer}>
-            <View style={styles.col}>{columns[0].map(renderProduct)}</View>
-            <View style={styles.col}>{columns[1].map(renderProduct)}</View>
-            <View style={styles.col}>{columns[2].map(renderProduct)}</View>
+
+          <View style={styles.filterSection}>
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={18} color="#9CA3AF" />
+              <TextInput
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Search listings by name..."
+                placeholderTextColor="#9CA3AF"
+                style={styles.searchInput}
+              />
+              {searchTerm.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchTerm('')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterChipsRow}
+            >
+              {CATEGORY_FILTERS.map((cat) => {
+                const isActive = activeCategory === cat.key;
+                return (
+                  <TouchableOpacity
+                    key={cat.key}
+                    onPress={() => setActiveCategory(cat.key)}
+                    style={[styles.categoryPill, isActive && styles.categoryPillActive]}
+                  >
+                    <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {regions.length > 0 && (
+                <TouchableOpacity
+                  style={styles.regionChip}
+                  onPress={() => setRegionModalVisible(true)}
+                >
+                  <Text style={styles.regionChipText} numberOfLines={1}>
+                    {activeRegion === 'all' ? 'All regions' : activeRegion}
+                  </Text>
+                  <Ionicons name="chevron-down" size={14} color="#333" />
+                </TouchableOpacity>
+              )}
+            </ScrollView>
           </View>
+
+          {filteredItems.length === 0 ? (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="magnify-close" size={56} color="#CBD5E0" />
+              <Text style={styles.emptyTitle}>No listings match your filters</Text>
+              <Text style={styles.emptySub}>Try a different keyword, category or region.</Text>
+            </View>
+          ) : (
+            <View style={styles.masonryContainer}>
+              <View style={styles.col}>{columns[0].map(renderProduct)}</View>
+              <View style={styles.col}>{columns[1].map(renderProduct)}</View>
+              <View style={styles.col}>{columns[2].map(renderProduct)}</View>
+            </View>
+          )}
         </ScrollView>
       )}
 
       {/* Modals & Overlays */}
       <Modal transparent visible={isDetailLoading} animationType="fade">
         <View style={styles.loadingOverlay}><View style={styles.loadingBox}><ActivityIndicator color="#f5a53d" /><Text style={{marginTop:8}}>Opening...</Text></View></View>
+      </Modal>
+
+      <Modal transparent visible={regionModalVisible} animationType="fade">
+        <TouchableOpacity
+          style={styles.regionOverlay}
+          activeOpacity={1}
+          onPress={() => setRegionModalVisible(false)}
+        >
+          <View style={styles.regionMenu}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+              <TouchableOpacity
+                style={styles.regionOption}
+                onPress={() => { setActiveRegion('all'); setRegionModalVisible(false); }}
+              >
+                <Text style={styles.regionOptionText}>All regions</Text>
+              </TouchableOpacity>
+              {regions.map((region) => (
+                <TouchableOpacity
+                  key={region}
+                  style={styles.regionOption}
+                  onPress={() => { setActiveRegion(region); setRegionModalVisible(false); }}
+                >
+                  <Text style={styles.regionOptionText}>{region}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       <Modal animationType="slide" transparent visible={isModalVisible} onRequestClose={() => setIsModalVisible(false)}>
@@ -484,6 +612,47 @@ const styles = StyleSheet.create({
   carouselImgWrapper: { position: 'relative', width: width - 30, height: height / 4, borderRadius: 20, overflow: 'hidden' },
   carouselImg: { width: '100%', height: '100%' },
   carouselCallBtn: { position: 'absolute', bottom: 12, right: 12, backgroundColor: '#07ed6b', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 8 },
+  filterSection: { paddingHorizontal: 12, marginBottom: 10 },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 14,
+    height: 44,
+    marginBottom: 10,
+  },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#111', padding: 0 },
+  filterChipsRow: { alignItems: 'center', paddingRight: 12 },
+  categoryPill: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  categoryPillActive: { backgroundColor: '#f5a53d' },
+  categoryPillText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
+  categoryPillTextActive: { color: 'white' },
+  regionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    height: 34,
+    marginLeft: 2,
+  },
+  regionChipText: { fontSize: 12, fontWeight: '600', color: '#333', marginRight: 4, maxWidth: 110 },
+  regionOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', paddingHorizontal: 40 },
+  regionMenu: { backgroundColor: 'white', borderRadius: 14, paddingVertical: 6 },
+  regionOption: { paddingVertical: 12, paddingHorizontal: 18 },
+  regionOptionText: { fontSize: 15, color: '#222' },
+  emptyState: { alignItems: 'center', paddingHorizontal: 30, paddingVertical: 50 },
+  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 16 },
+  emptySub: { textAlign: 'center', color: '#777', marginTop: 6 },
   masonryContainer: { flexDirection: 'row', padding: 12, justifyContent: 'space-between', paddingBottom: 100 },
   col: { width: COLUMN_WIDTH },
   itemCard: { backgroundColor: 'white', borderRadius: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 2 } },
