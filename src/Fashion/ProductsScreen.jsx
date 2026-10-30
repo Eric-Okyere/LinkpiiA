@@ -10,8 +10,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Modal,
-  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EvilIcons, Ionicons } from "@expo/vector-icons";
@@ -40,8 +38,6 @@ const ProductScreen = (props) => {
   const [displayedProducts, setDisplayedProducts] = useState(20);
   const [showSearch, setShowSearch] = useState(false);
   const [input, setInput] = useState({ name: "", region: "" });
-  const [selectedRegion, setSelectedRegion] = useState("all");
-  const [regionModalVisible, setRegionModalVisible] = useState(false);
   const [pressLoading, setPressLoading] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
 
@@ -50,7 +46,6 @@ const ProductScreen = (props) => {
       setLoading(true);
       setShowSearch(false);
       setInput({ name: "", region: "" });
-      setSelectedRegion("all");
 
       const fetchData = async () => {
         try {
@@ -101,22 +96,6 @@ const ProductScreen = (props) => {
     setProductsFiltered(filtered);
   }, [input, products]);
 
-  // Distinct regions present in the loaded listings, for the region
-  // dropdown - mirrors the website's Home.jsx (same computation, same
-  // "All regions" default).
-  const regions = useMemo(
-    () => Array.from(new Set(products.map((p) => p.region).filter(Boolean))).sort(),
-    [products]
-  );
-
-  const visibleProducts = useMemo(
-    () =>
-      selectedRegion === "all"
-        ? productCtg
-        : productCtg.filter((item) => item.region === selectedRegion),
-    [productCtg, selectedRegion]
-  );
-
   const changeCtg = (ctg) => {
     if (ctg === "all") {
       setProductCtg(initialState);
@@ -131,8 +110,8 @@ const ProductScreen = (props) => {
   // main cause of the 'VirtualizedList: large list is slow to update'
   // warning, since FlatList had to treat every render as a full data change.
   const paginatedProducts = useMemo(
-    () => visibleProducts.slice(0, displayedProducts),
-    [visibleProducts, displayedProducts]
+    () => productCtg.slice(0, displayedProducts),
+    [productCtg, displayedProducts]
   );
 
   // useCallback so renderItem keeps a stable reference too - paired with
@@ -218,18 +197,6 @@ const ProductScreen = (props) => {
                     categoryFilter={changeCtg}
                     categories={categories}
                   />
-                  {regions.length > 0 && (
-                    <TouchableOpacity
-                      style={styles.regionChip}
-                      onPress={() => setRegionModalVisible(true)}
-                    >
-                      <Ionicons name="location-outline" size={14} color={theme.colors.ink700} />
-                      <Text style={styles.regionChipText} numberOfLines={1}>
-                        {selectedRegion === "all" ? "All regions" : selectedRegion}
-                      </Text>
-                      <Ionicons name="chevron-down" size={14} color={theme.colors.ink700} />
-                    </TouchableOpacity>
-                  )}
                 </View>
                 <FlatList
                   data={paginatedProducts}
@@ -239,7 +206,7 @@ const ProductScreen = (props) => {
                   onEndReached={() => setDisplayedProducts(prev => prev + 20)}
                   onEndReachedThreshold={0.5}
                   ListFooterComponent={() => 
-                    displayedProducts < visibleProducts.length ? (
+                    displayedProducts < productCtg.length ? (
                       <ActivityIndicator style={{ marginVertical: 20 }} size="small" color={theme.colors.brand600} />
                     ) : null
                   }
@@ -251,39 +218,6 @@ const ProductScreen = (props) => {
               </View>
             )}
 
-            <Modal transparent visible={regionModalVisible} animationType="fade">
-              <TouchableOpacity
-                style={styles.regionOverlay}
-                activeOpacity={1}
-                onPress={() => setRegionModalVisible(false)}
-              >
-                <View style={styles.regionMenu}>
-                  <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
-                    <TouchableOpacity
-                      style={styles.regionOption}
-                      onPress={() => {
-                        setSelectedRegion("all");
-                        setRegionModalVisible(false);
-                      }}
-                    >
-                      <Text style={styles.regionOptionText}>All regions</Text>
-                    </TouchableOpacity>
-                    {regions.map((region) => (
-                      <TouchableOpacity
-                        key={region}
-                        style={styles.regionOption}
-                        onPress={() => {
-                          setSelectedRegion(region);
-                          setRegionModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.regionOptionText}>{region}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              </TouchableOpacity>
-            </Modal>
           </View>
         </KeyboardAvoidingView>
       )}
@@ -365,49 +299,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingTop: 10,
   },
-  // Categories scrolls full-width on its own row; the region chip sits
-  // directly below it instead of sharing the row (sharing it let the
-  // chip overlap/cover the last category pill on narrower phones).
   filterRow: {
     paddingBottom: 4,
-  },
-  regionChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: theme.colors.ink100,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: 12,
-    height: 32,
-    marginLeft: 12,
-    marginTop: 6,
-    maxWidth: 200,
-  },
-  regionChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.ink700,
-    marginHorizontal: 6,
-  },
-  regionOverlay: {
-    flex: 1,
-    backgroundColor: theme.colors.overlay,
-    justifyContent: "center",
-    paddingHorizontal: 40,
-  },
-  regionMenu: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    paddingVertical: 6,
-    ...theme.shadow.floating,
-  },
-  regionOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-  },
-  regionOptionText: {
-    fontSize: 15,
-    color: theme.colors.ink900,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
