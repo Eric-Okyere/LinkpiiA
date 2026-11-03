@@ -183,10 +183,14 @@ const styles = StyleSheet.create({
   },
 
   tabLabel: {
-    fontSize: 11,
-    marginTop: 2,
-    fontWeight: '600',
-    color: theme.colors.ink500,
+    fontSize: 12,
+    marginTop: 3,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+    // ink700 instead of the lighter ink500 - at this small a size, ink500's
+    // ~4:1 contrast against the white bar read as faint/blurry rather than
+    // clearly legible (Eric reported "not showing clear").
+    color: theme.colors.ink700,
   },
 
   tabLabelActive: {
