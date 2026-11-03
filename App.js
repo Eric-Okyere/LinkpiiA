@@ -10,6 +10,7 @@ import {
   Platform 
 } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as ReduxProvider } from 'react-redux';
 import { PaperProvider } from 'react-native-paper'; 
 import { PersistGate } from 'redux-persist/integration/react';
@@ -92,6 +93,7 @@ export default function App() {
   }, [isConnected]);
 
   return (
+    <SafeAreaProvider>
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <PaperProvider> 
@@ -124,6 +126,7 @@ export default function App() {
         </PaperProvider>
       </PersistGate>
     </ReduxProvider>
+    </SafeAreaProvider>
   );
 }
 

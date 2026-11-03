@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AntDesign, FontAwesome, FontAwesome6, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Advertnav from './Advertnav';
 import FeedScreen from '../FeedScreen';
@@ -17,8 +18,15 @@ const Tab = createBottomTabNavigator();
 /* ================= CUSTOM TAB BAR ================= */
 
 function CustomTabBar({ state, descriptors, navigation }) {
+  // On devices with an on-screen Android nav bar (3-button or gesture pill),
+  // this absolutely-positioned bar sits at the true bottom of the screen -
+  // without this inset it renders partly underneath the system nav bar,
+  // which draws its own translucent scrim + buttons on top and makes our
+  // labels look washed out / covered (reported by Eric from a real device).
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { paddingBottom: insets.bottom, backgroundColor: theme.colors.surface }]}>
       <View style={styles.container}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
