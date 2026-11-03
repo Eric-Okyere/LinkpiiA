@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AntDesign, FontAwesome, FontAwesome6, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Advertnav from './Advertnav';
@@ -12,7 +12,6 @@ import BuildingNavs from './BuildingNavs';
 import theme from '../src/Styles/designSystem';
 
 
-const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 /* ================= CUSTOM TAB BAR ================= */
@@ -30,20 +29,12 @@ function CustomTabBar({ state, descriptors, navigation }) {
             navigation.navigate(route.name);
           };
 
-          // CENTER BUTTON (POST)
+          // CENTER SLOT: an equal-width, invisible spacer that keeps the other 4
+          // tabs evenly distributed. The actual floating "+" button is rendered
+          // once below, as a sibling of this row, so it can never paint over - or
+          // get painted over by - a neighboring tab's icon or label.
           if (route.name === "Post") {
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.centerButton}
-                onPress={onPress}
-                activeOpacity={0.8}
-              >
-                <View style={styles.centerIn}>
-                <AntDesign name="plus" size={20} color={theme.colors.surface} />
-                </View>
-              </TouchableOpacity>
-            );
+            return <View key={index} style={styles.tabItem} pointerEvents="none" />;
           }
 
           let IconComponent;
@@ -66,10 +57,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
           return (
             <TouchableOpacity
               key={index}
-              style={[
-                styles.tabItem,
-                route.name === "Buy" && { marginLeft: -15 } // 👈 Shift Buy left
-              ]}
+              style={styles.tabItem}
               onPress={onPress}
               activeOpacity={0.7}
             >
@@ -80,13 +68,30 @@ function CustomTabBar({ state, descriptors, navigation }) {
                   color={isFocused ? theme.colors.brand600 : theme.colors.ink500}
                 />
               </View>
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+              <Text
+                style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
+                numberOfLines={1}
+              >
                 {label}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
+
+      {/* Floating center "Post" button - rendered once, outside the flex row,
+          positioned by percentage so it stays centered regardless of screen
+          width and never overlaps a neighboring tab's label (see the center-slot
+          spacer above). */}
+      <TouchableOpacity
+        style={styles.centerButton}
+        onPress={() => navigation.navigate("Post")}
+        activeOpacity={0.8}
+      >
+        <View style={styles.centerIn}>
+          <AntDesign name="plus" size={20} color={theme.colors.surface} />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -151,16 +156,16 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    height: 75,
+    height: 78,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
     borderTopLeftRadius: theme.radius.xl,
     borderTopRightRadius: theme.radius.xl,
     ...theme.shadow.floating,
   },
 
   tabItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -192,14 +197,16 @@ const styles = StyleSheet.create({
   centerButton: {
     position: 'absolute',
     top: -20,
-    left: width / 2,
-    transform: [{ translateX: -32.5 }],
+    left: '50%',
+    marginLeft: -27.5, // half of width: 55, centers regardless of screen width
     backgroundColor: theme.colors.surface,
     width: 55,
     height: 55,
     borderRadius: theme.radius.pill,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
+    elevation: 10,
     ...theme.shadow.floating,
   },
   centerIn:{
